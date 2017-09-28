@@ -78,17 +78,7 @@ class IRSystem:
     
     def lookup(self, query):
         snippets_by_index_type = {index_name: index.lookup(query) for index_name,index in self.indexes.items()}
-        print(snippets_by_index_type)
         return {scorer_name: scorer(snippets_by_index_type) for scorer_name,scorer in self.scorers.items()}
-        # return {scorer_name: scorer(snippets_by_index_type) for scorer_name, scorer in self.scorers.items()}
-#         result = {}
-#         for index_name,index in self.indexes.items():
-#             local_result = {}
-#             snippets = index.lookup(query)
-#             for scorer_name,scorer in self.scorers.items():
-#                 local_result[scorer_name] = scorer(snippets)
-#             results[index_name] = local_result
-#         return result
     
     def __repr__(self):
         return "IRSystem(%s pieces)" % (len(self.piece_names))
@@ -245,6 +235,14 @@ irsystem = IRSystem(index_methods, scorer_methods, pieces)
 all_snippets = get_snippets_for_pieces(pieces)
 random_snippet = random.choice(all_snippets)
 irsystem.lookup(random_snippet)
+
+
+# In[17]:
+
+
+random_snippets = random.sample(all_snippets, 20)
+scores = [irsystem.lookup(s) for s in random_snippets]
+list(zip(random_snippets, scores))
 
 
 # In[ ]:
