@@ -2,7 +2,7 @@ Project Idea: Searching Musical Scores
 
 Tags: project_idea
 
-Due to some awkwardness in my work and travel schedule over the next several months, I intend to work on this project alone - as a team of 1.
+Due to some awkwardness in my work and travel schedule over the next several months, I intend to work on this project alone.
 
 Project Description
 ===================
@@ -14,21 +14,22 @@ This project explores how concepts in textual information retrieval can be appli
 
 Both use-cases require a flexible IR system.
 
-In the first case, listeners are generally not able to exactly reproduce music by ear (e.g. to exactly match tempo, identify pitches, or detect rythm). Furthermore, there is often some ambiguity in notation (e.g. a quarter and half note sound like they are the same length if the tempo is two times as fast for the half note).
+In the first case, listeners are generally not able to exactly reproduce music by ear (e.g. to exactly match tempo, identify pitches, or reproduce rythms). Furthermore, there is often some ambiguity in notation (e.g. a quarter and half note sound like they are the same length if the tempo is two times as fast for the half note).
 
 In the second case, the goal is explicitly *not* to find exact matches, but rather to find variations of the provided theme. Variation can occur rhythmically (stretching, compressing, or changing rythm while maintaining pitches), tonally (by shifting pitch, changing keys, inversions, etc), or more broadly may simply follow the same contour or chord progression.
 
 Technology Review
 ==================
 
-One of many unique challenges of indexing and analyzing music is simply how to represent and manipulate it digitally. Traditionally, musical notation has been designed and optimized to enable performers to accurately perform musical works in real-time. As a result, the notation tends to be very dense and rely on contextual clues and training to reduce the amount of information which needs to be read in real time. Early digital representations of music were focused on either streaming for playback or on notational aspects for typesetting musical scores. For the technology review, I will be looking at methods of digitally representing music that are appropriate for indexing by various dimensions and which lend themselves to programmatic manipulation. In particularly, I will look at the following:
+One of many unique challenges of indexing and analyzing music is simply how to represent and manipulate it digitally. Traditionally, musical notation has been designed and optimized to enable performers to accurately perform musical works in real-time. As a result, the notation tends to be very dense and rely on contextual clues and training to reduce the amount of information which needs to be read in real time. Early digital representations of music were focused on either streaming for playback or on notational aspects for typesetting musical scores. For the technology review, I will be looking at methods of digitally representing music that are appropriate for indexing by various dimensions and which lend themselves to programmatic manipulation and analysis. In particularly, I will look at the following:
 
-1. MIDI - Standard
-2. MusicXML - Standard
+1. MIDI - Standard streaming playback format
+2. MusicXML - Standardized XML based format
 3. Humdrum Syntax - Ohio State's Cognitive Systematic Musicology Lab
-4. Lilypond Notation (Alda - microlanguage derived from Lilypond)
-5. Abjad - Open source python library for music notation and analysis
-6. music21 - from MIT's computational musicology group
+4. Scala - Experimental music notation
+5. TinyNotation - Highly simplified, single line format derived from Lilypond
+
+In addition, the technology review will go over the basics of the primary tool used for analysis and development of the IR system: the `music21` Python library, developed by MIT's computational musicology group. 
 
 Existing Work
 =============
