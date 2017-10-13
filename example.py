@@ -28,9 +28,9 @@ all_snippets = get_snippets_for_pieces(pieces)
 
 print_timing("Sampling snippets for demonstration")
 sample_pieces = (corpus.parse(piece) for piece in random.sample(piece_paths, min(20, len(piece_paths))))
-random_snippets = random.sample(get_snippets_for_pieces(sample_pieces), 20)
+random_snippets = random.sample(list(get_snippets_for_pieces(sample_pieces)), 20)
 scores = [irsystem.lookup(s) for s in random_snippets]
-scored_snippets = list(zip(random_snippets, scores))
+scored_snippets = zip(random_snippets, scores)
 
 print_timing("Printing results")
 print("==========================================================================")
@@ -47,6 +47,6 @@ for (snippet, scores) in scored_snippets:
                 grade
             ])
 table_rows.sort(key=lambda x: (x[0], x[2], -1*x[4]))
-print_timing(tabulate(table_rows, headers=table_headers))
+print(tabulate(table_rows, headers=table_headers))
 
 input("\nDone - press enter to exit.")

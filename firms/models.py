@@ -40,13 +40,15 @@ def get_notes_and_rests(part):
 # When we get snippets, we need to account for chords. To handle this, treat each note value as a set and compute the cartesian
 # product to produce all possible one-line snippets for the part
 def get_snippets_for_piece(piece_name, part_name, notes, snippet_length):
-    return [Snippet(piece_name, part_name, notes[i: i+snippet_length], i) for i in range(0, 1 + len(notes) - snippet_length)]
+    return (Snippet(piece_name, part_name, notes[i: i+snippet_length], i) for i in range(0, 1 + len(notes) - snippet_length))
 
 def get_snippets_for_parts(parts):
-    return flatten(list((get_snippets_for_piece(part[0], part[1], get_notes_and_rests(part[2]), 5) for part in parts)))
+    for snippets_by_part in (get_snippets_for_piece(part[0], part[1], get_notes_and_rests(part[2]), 5) for part in parts):
+        for snippet in snippets_by_part:
+            yield snippet
 
 def get_snippets_for_pieces(pieces):
-    parts = list(get_part_details(pieces))
+    parts = get_part_details(pieces)
     return get_snippets_for_parts(parts)
 
 class IRSystem:
@@ -54,10 +56,8 @@ class IRSystem:
         self.index_methods = index_methods
         parts = list(get_part_details(pieces))
         self.piece_names = set( (part[0] for part in parts) )
-        # Break up pieces into a flat list of snippets
-        snippets = get_snippets_for_parts(parts)
         # For each index_method, build an index
-        self.indexes = { k:MemoryIndex(snippets, v, k) for k,v in index_methods.items() }
+        self.indexes = {k:MemoryIndex(get_snippets_for_parts(parts), v, k) for k,v in index_methods.items()}
         # Store scorers
         self.scorers = scorers
                         
@@ -112,7 +112,7 @@ class MemoryIndex:
             self.index[key].add(snippet)
             
     def lookup(self, query):
-        return flatten([list(self.index[key]) for key in self.keyfn(query)])
+        return flatten([self.index[key] for key in self.keyfn(query)])
     
     def merge_indexes(self, index):
         result = MemoryIndex([], self.keyfn, self.name)
