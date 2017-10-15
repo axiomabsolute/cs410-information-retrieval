@@ -54,6 +54,11 @@ def get_snippets_for_pieces(pieces):
 class IRSystem:
     def __init__(self, index_methods, scorers = None, pieces = []):
         self.index_methods = index_methods
+        # for part in parts
+        ## add to piece names
+        ## for snippet in get snippets
+        ### for index in indexes
+        #### add snippet to index
         parts = list(get_part_details(pieces))
         self.piece_names = set( (part[0] for part in parts) )
         # For each index_method, build an index

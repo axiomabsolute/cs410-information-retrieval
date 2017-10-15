@@ -11,7 +11,7 @@ def print_timing(message):
 
 print()
 print_timing("Loading pieces")
-piece_paths = corpus.getComposer('bach')[:5]
+piece_paths = corpus.getComposer('bach')
 pieces = (corpus.parse(piece) for piece in piece_paths)
 
 index_methods = {
@@ -24,10 +24,9 @@ scorer_methods = {
 
 print_timing("Building IR system")
 irsystem = IRSystem(index_methods, scorer_methods, pieces)
-all_snippets = get_snippets_for_pieces(pieces)
 
 print_timing("Sampling snippets for demonstration")
-sample_pieces = (corpus.parse(piece) for piece in random.sample(piece_paths, min(20, len(piece_paths))))
+sample_pieces = (corpus.parse(piece) for piece in random.sample(piece_paths, min(5, len(piece_paths))))
 random_snippets = random.sample(list(get_snippets_for_pieces(sample_pieces)), 20)
 scores = [irsystem.lookup(s) for s in random_snippets]
 scored_snippets = zip(random_snippets, scores)
