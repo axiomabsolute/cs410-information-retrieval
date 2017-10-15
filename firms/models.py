@@ -42,6 +42,9 @@ def get_notes_and_rests(part):
 def get_snippets_for_piece(piece_name, part_name, notes, snippet_length):
     return (Snippet(piece_name, part_name, notes[i: i+snippet_length], i) for i in range(0, 1 + len(notes) - snippet_length))
 
+def get_snippets_for_part(part):
+    return get_snippets_for_piece(part[0], part[1], get_notes_and_rests(part[2]), 5)
+
 def get_snippets_for_parts(parts):
     for snippets_by_part in (get_snippets_for_piece(part[0], part[1], get_notes_and_rests(part[2]), 5) for part in parts):
         for snippet in snippets_by_part:
@@ -54,15 +57,13 @@ def get_snippets_for_pieces(pieces):
 class IRSystem:
     def __init__(self, index_methods, scorers = None, pieces = []):
         self.index_methods = index_methods
-        # for part in parts
-        ## add to piece names
-        ## for snippet in get snippets
-        ### for index in indexes
-        #### add snippet to index
-        parts = list(get_part_details(pieces))
-        self.piece_names = set( (part[0] for part in parts) )
-        # For each index_method, build an index
-        self.indexes = {k:MemoryIndex(get_snippets_for_parts(parts), v, k) for k,v in index_methods.items()}
+        self.piece_names = set()
+        self.indexes = {k:MemoryIndex([], v, k) for k,v in index_methods.items()}
+        for part in get_part_details(pieces):
+            self.piece_names.add(part[0])
+            snippets = get_snippets_for_part(part)
+            for idx in self.indexes.values():
+                idx.add_snippets(snippets)
         # Store scorers
         self.scorers = scorers
                         
@@ -115,6 +116,10 @@ class MemoryIndex:
     def add_snippet(self, snippet):
         for key in self.keyfn(snippet):
             self.index[key].add(snippet)
+
+    def add_snippets(self, snippets):
+        for snippet in snippets:
+            self.add_snippet(snippet)
             
     def lookup(self, query):
         return flatten([self.index[key] for key in self.keyfn(query)])
