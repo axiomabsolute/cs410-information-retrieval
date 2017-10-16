@@ -16,12 +16,3 @@ def index_key_by_pitch(snippet):
             ' '.join(line)
         ] for line in itertools.product(*get_pitches(snippet))
     ])
-
-# Parm looks like [ [index_1_piece_1, index_2_piece_2, ...], [index_1_piece_2, index_2_piece_2, ...]... ]
-# def merge_indexes_for_pieces(indexes_by_piece):
-#     collected_indexes = zip(*indexes_by_piece)
-#     return [ merge_indexes(index_collection) for index_collection in collected_indexes ]
-
-# def make_indexes(index_methods, snippets_by_part):
-#     print(snippets_by_part)
-#     return [ [ Index(snippets, index_method, name) for name, index_method in index_methods.items() ] for snippets in snippets_by_part ]

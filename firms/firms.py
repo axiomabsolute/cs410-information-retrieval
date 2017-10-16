@@ -1,7 +1,7 @@
 from music21 import corpus
 from graders import simple_sum_grader
 from stemmers import index_key_by_pitch
-from models import IRSystem, get_snippets_for_pieces
+from models import MemoryIRSystem, get_snippets_for_pieces
 import random
 
 pieces = list((corpus.parse(piece) for piece in corpus.getComposer('bach')[:10]))
@@ -14,7 +14,7 @@ scorer_methods = {
     'Simple Sum': simple_sum_grader
 }
 
-irsystem = IRSystem(index_methods, scorer_methods, pieces)
+irsystem = MemoryIRSystem(index_methods, scorer_methods, pieces)
 # all_snippets = get_snippets_for_pieces(pieces)
 # random_snippet = random.choice(all_snippets)
 # irsystem.lookup(random_snippet)
