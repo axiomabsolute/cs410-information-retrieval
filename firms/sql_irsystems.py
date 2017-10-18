@@ -131,6 +131,7 @@ class SqlIndex(FirmIndex):
         if results:
             return results[0][0]
         cursor.execute("INSERT INTO stems (stemmer_id, stem) VALUES (?, ?)", (stemmer_id, stem))
+        conn.commit()
         return cursor.lastrowid
     
     def ensure_entry(self, stem_id, snippet_id, conn):
@@ -140,6 +141,7 @@ class SqlIndex(FirmIndex):
         if results:
             return results[0][0]
         cursor.execute("INSERT INTO entries (stem_id, snippet_id) VALUES (?, ?)", (stem_id, snippet_id))
+        conn.commit()
         return cursor.lastrowid
     
     def add_snippet(self, snippet, snippet_id):
