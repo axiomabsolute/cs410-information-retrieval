@@ -1,20 +1,24 @@
-from music21 import corpus
-from graders import simple_sum_grader
-from stemmers import index_key_by_pitch
-from models import MemoryIRSystem, get_snippets_for_pieces
+# from music21 import corpus
+# from graders import simple_sum_grader
+# from stemmers import index_key_by_pitch
+# from models import MemoryIRSystem, get_snippets_for_pieces
+import datetime
 import random
 
-pieces = list((corpus.parse(piece) for piece in corpus.getComposer('bach')[:10]))
+def print_timing(message, tabcount=0):
+    print("\t" * tabcount + "%s %s" % (datetime.datetime.utcnow(), message))
 
-index_methods = {
-    'By Pitch': index_key_by_pitch
-}
+# pieces = list((corpus.parse(piece) for piece in corpus.getComposer('bach')[:10]))
 
-scorer_methods = {
-    'Simple Sum': simple_sum_grader
-}
+# index_methods = {
+#     'By Pitch': index_key_by_pitch
+# }
 
-irsystem = MemoryIRSystem(index_methods, scorer_methods, pieces)
+# scorer_methods = {
+#     'Simple Sum': simple_sum_grader
+# }
+
+# irsystem = MemoryIRSystem(index_methods, scorer_methods, pieces)
 # all_snippets = get_snippets_for_pieces(pieces)
 # random_snippet = random.choice(all_snippets)
 # irsystem.lookup(random_snippet)
@@ -23,4 +27,4 @@ irsystem = MemoryIRSystem(index_methods, scorer_methods, pieces)
 # scores = [irsystem.lookup(s) for s in random_snippets]
 # print(list(zip(random_snippets, scores)))
 
-print("This is where the interactive CLI will live")
+# print("This is where the interactive CLI will live")

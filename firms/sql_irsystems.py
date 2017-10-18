@@ -1,5 +1,6 @@
 from firms.models import IRSystem, FirmIndex, get_part_details, get_snippets_for_part
 import sqlite3
+from firms.firms import print_timing
 
 class SqlIRSystem(IRSystem):
 
@@ -23,6 +24,7 @@ class SqlIRSystem(IRSystem):
             piece_name = part[0]
             part_name = part[1]
             if not piece_id:
+                print_timing("Processing %s" % piece_name, 1)
                 piece_id = self.ensure_piece(piece_path, piece_name, conn)
             part_id = self.ensure_part(piece_id, part[1], conn)
             snippets = get_snippets_for_part(part)
