@@ -1,38 +1,36 @@
-from firms.models import IRSystem, FirmIndex, get_part_details
+from firms.models import IRSystem, FirmIndex, get_part_details, get_snippets_for_part
 import sqlite3
 
 class SqlIRSystem(IRSystem):
 
-    def __init__(self, dbpath, index_table_names, index_methods, scorers = None, piece_paths = []):
+    def __init__(self, dbpath, index_methods, scorers = None, piece_paths = []):
         # Ensure pieces, stemmers, snippets, parts, stems, and entries tables exist
         # Add each index method to stemmers table
         self.dbpath = dbpath
-        self.index_table_names = index_table_names
         conn = sqlite3.connect(self.dbpath)
         self.ensure_db(conn)
-        super().__init__(index_methods, scorers, piece_paths)
+        self.stemmer_ids = self.ensure_stemmers(index_methods, conn)
         conn.close()
+        super().__init__(index_methods, scorers, piece_paths)
 
     def makeEmptyIndex(self, indexfn, name):
-        return SqlIndex(self.dbpath, self.index_table_names[name], [], indexfn, name)
+        return SqlIndex(self.dbpath, [], indexfn, name, self.stemmer_ids[name])
 
     def add_piece(self, piece, piece_path):
-        # Ensure piece in pieces table
-        # Extract snippets
-        # Ensure exist in snipets table
-        # Ensure parts exist
-        # For each index method
-        ## Ensure stem exists
-        ## Ensure entry exists
         conn = sqlite3.connect(self.dbpath)
-        pieces = set()
+        piece_id = None
         for part in get_part_details(piece):
-            if part[0] not in pieces:
-                try:
-                    self.ensure_piece(piece_path, part, conn)
-                    pieces.add(part[0])
-                except:
-                    print(part)
+            piece_name = part[0]
+            part_name = part[1]
+            if not piece_id:
+                piece_id = self.ensure_piece(piece_path, piece_name, conn)
+            part_id = self.ensure_part(piece_id, part[1], conn)
+            snippets = get_snippets_for_part(part)
+            for idx in self.indexes.values():
+                for snippet in snippets:
+                    snippet_id = self.ensure_snippet(snippet, piece_id, part_id, conn)
+                    idx.add_snippet(snippet, snippet_id)
+        conn.close()
 
     def ensure_db(self, conn):
         cursor = conn.cursor()
@@ -74,13 +72,23 @@ class SqlIRSystem(IRSystem):
         cursor.execute("""CREATE INDEX IF NOT EXISTS stem_stemmer_idx ON stems(stemmer_id)""")
         cursor.execute("""CREATE INDEX IF NOT EXISTS stem_stem_idx ON stems(stem)""")
         cursor.execute("""CREATE INDEX IF NOT EXISTS entry_stem_idx ON entries(stem_id)""")
-    
-    def ensure_piece(self, piece_path, piece, conn):
-        piece_name = piece[0].replace('\'', '')
+
+    def ensure_stemmers(self, stemmers, conn):
         cursor = conn.cursor()
-        cursor.execute("SELECT id FROM pieces WHERE path='{path}' AND name='{name}' LIMIT 1".format(
-            path=piece_path, name=piece_name
-        ))
+        stemmer_ids = {}
+        for stemmer_name in stemmers.keys():
+            cursor.execute("SELECT id FROM stemmers WHERE name=?", (stemmer_name, ))
+            results = cursor.fetchall()
+            if not results:
+                cursor.execute("INSERT INTO stemmers (name) VALUES (?)", (stemmer_name, ))
+            stemmer_ids[stemmer_name] = cursor.lastrowid
+        return stemmer_ids
+
+    def ensure_piece(self, piece_path, piece_name, conn):
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM pieces WHERE path=? AND name=? LIMIT 1",
+            (piece_path, piece_name)
+        )
         results = cursor.fetchall()
         if results:
             return results[0][0]
@@ -90,24 +98,63 @@ class SqlIRSystem(IRSystem):
         conn.commit()
         return cursor.lastrowid
 
+    def ensure_part(self, piece_id, part_name, conn):
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM parts WHERE piece_id=? AND name=? LIMIT 1", (piece_id, part_name))
+        results = cursor.fetchall()
+        if results:
+            return results[0][0]
+        cursor.execute("INSERT INTO parts (piece_id, name) VALUES (?, ?)", (piece_id, part_name))
+        conn.commit()
+        return cursor.lastrowid
+
+    def ensure_snippet(self, snippet, piece_id, part_id, conn):
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM snippets WHERE piece_id=? AND part_id=? AND offset=?", (piece_id, part_id, snippet.offset))
+        results = cursor.fetchall()
+        if results:
+            return results[0][0]
+        cursor.execute("INSERT INTO snippets (piece_id, part_id, offset) VALUES (?, ?, ?)", (piece_id, part_id, snippet.offset))
+        conn.commit()
+        return cursor.lastrowid
+
 class SqlIndex(FirmIndex):
-    def __init__(self, dbpath, table_name, snippets, keyfn, name = ""):
+    def __init__(self, dbpath, snippets, keyfn, name, stemmer_id):
         self.dbpath = dbpath
-        self.table_name = table_name
-        # Ensure stemmer exists in stemmers table
+        self.stemmer_id = stemmer_id
         super().__init__(snippets, keyfn, name)
+    
+    def ensure_stem(self, stemmer_id, stem, conn):
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM stems WHERE stemmer_id=? AND stem=?", (stemmer_id, stem))
+        results = cursor.fetchall()
+        if results:
+            return results[0][0]
+        cursor.execute("INSERT INTO stems (stemmer_id, stem) VALUES (?, ?)", (stemmer_id, stem))
+        return cursor.lastrowid
+    
+    def ensure_entry(self, stem_id, snippet_id, conn):
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM entries WHERE stem_id=? AND snippet_id=?", (stem_id, snippet_id))
+        results = cursor.fetchall()
+        if results:
+            return results[0][0]
+        cursor.execute("INSERT INTO entries (stem_id, snippet_id) VALUES (?, ?)", (stem_id, snippet_id))
+        return cursor.lastrowid
+    
+    def add_snippet(self, snippet, snippet_id):
+        conn = sqlite3.connect(self.dbpath, timeout=10)
+        stems = self.keyfn(snippet)
+        for stem in stems:
+            stem_id = self.ensure_stem(self.stemmer_id, stem, conn)
+            entry_id = self.ensure_entry(stem_id, snippet_id, conn)
+        conn.close()
+        return entry_id
 
-    def add_snippet(self, snippet):
-        conn = sqlite3.connect(self.dbpath)
-        # Ensure piece in pieces table
-        # Ensure snippet in snippets table
-        # Ensure part in parts table
-        # Ensure stem in stem table
-        # Ensure entry in entries table
 
-    def add_snippets(self, snippets):
+    def add_snippets(self, snippets, snippet_id):
         # May want to override this - piece/snippet/part checks only need to happen once
-        super().add_snippets(snippets)
+        super().add_snippets(snippets, snippet_id)
 
     def lookup(self, snippet):
         pass

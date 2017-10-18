@@ -48,7 +48,6 @@ print_timing("Building IR system")
 # table_rows.sort(key=lambda x: (x[0], x[2], -1*x[4]))
 # print(tabulate(table_rows, headers=table_headers))
 
-index_table_names = {k:'_'.join(k.lower().split('\W')) for k in index_methods.keys()}
-sqlsystem = SqlIRSystem('example.db.sqlite', index_table_names, index_methods, scorer_methods, piece_paths)
+sqlsystem = SqlIRSystem('example.db.sqlite', index_methods, scorer_methods, piece_paths)
 
 input("\nDone - press enter to exit.")

@@ -27,8 +27,8 @@ def get_part_details(piece):
             for part in score.parts:
                 yield (score.metadata.title, part.partName, part)
     except:
-        for part in piece.parts:
-            yield (piece.metadata.title, part.partName, part)
+        for idx,part in enumerate(piece.parts):
+            yield (piece.metadata.title, part.partName or "Part %s" % idx, part)
 
 def get_notes_and_rests(part):
     """
@@ -126,16 +126,16 @@ class FirmIndex(metaclass=ABCMeta):
             self.add_snippet(snippet)
 
     @abstractmethod
-    def add_snippet(self, snippet):
+    def add_snippet(self, snippet, *args):
         pass
 
     @abstractmethod
     def lookup(self, query):
         pass
 
-    def add_snippets(self, snippets):
+    def add_snippets(self, snippets, *args):
         for snippet in snippets:
-            self.add_snippet(snippet)
+            self.add_snippet(snippet, *args)
 
 class MemoryIndex(FirmIndex):
     def __init__(self, snippets, keyfn, name = ""):
