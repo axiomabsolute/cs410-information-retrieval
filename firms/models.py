@@ -15,32 +15,20 @@ def flatten(toflatten):
     """
     return [item for sublist in toflatten for item in sublist]
 
-def get_parts_for_piece(piece):
-    """
-    Returns all parts for a piece
-    piece - the piece to extract
-    """
-    return piece.parts
-
 def get_part_details(piece):
     """
     Gets a tuple of title, partName, and part for each part in a list of pieces
     """
-    try:
-        scores = [piece.getScoreByNumber(number) for number in piece.getNumbers()]
-        for score in scores:
-            for part in score.parts:
-                yield (score.metadata.title, part.partName, part)
-    except:
-        for idx,part in enumerate(piece.parts):
-            yield (piece.metadata.title, part.partName or "Part %s" % idx, part)
+    piece_title = piece.metadata.title
+    for idx,part in enumerate(piece.recurse().parts):
+        yield (piece_title, part.partName or "Part %s" % idx, part)
 
 def get_notes_and_rests(part):
     """
     Given a part, extracts a flattened list of all notes in the part
     part - the part to extract
     """
-    return flatten([m.notesAndRests for m in part.measures(0, None) if m.isStream])
+    return list(part.recurse().notesAndRests)
 
 # When we get snippets, we need to account for chords. To handle this, treat each note value as a set and compute the cartesian
 # product to produce all possible one-line snippets for the part

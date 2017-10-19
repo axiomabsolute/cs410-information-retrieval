@@ -8,7 +8,7 @@ from firms.sql_irsystems import SqlIRSystem
 
 print()
 print_timing("Loading pieces")
-piece_paths = corpus.getComposer('bach')
+piece_paths = corpus.getComposer('bach')[:50]
 
 index_methods = {
     'By Pitch': index_key_by_pitch
