@@ -1,3 +1,8 @@
 {
-    "python.pythonPath": "D:\\Conda3\\envs\\cs410\\python.EXE"
+    "python.pythonPath": "D:\\Conda3\\envs\\cs410\\python.EXE",
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/bower_components": true,
+        "**/.vscode/tags": true
+    }
 }
