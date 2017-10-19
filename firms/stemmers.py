@@ -5,7 +5,7 @@ from firms.models import flatten
 def get_pitches(snippet):
     return [
         [note.pitch.nameWithOctave] if note.isNote else
-        [n.nameWithOctave for n in note.pitches] if note.isChord else
+        [ note.root().nameWithOctave ] if note.isChord else
         ['rest%s' % note.duration.quarterLength]
         for note in snippet.notes
     ]

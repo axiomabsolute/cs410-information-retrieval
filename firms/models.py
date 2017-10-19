@@ -64,8 +64,9 @@ class IRSystem(metaclass=ABCMeta):
         self.index_methods = index_methods
         self.scorers = scorers
         self.indexes = {k:self.makeEmptyIndex(v,k) for k,v in index_methods.items()}
-        for piece_path in piece_paths:
-            print_timing("Processing %s" % piece_path, 1)
+        total_pieces = len(piece_paths)
+        for idx,piece_path in enumerate(piece_paths):
+            print_timing("Processing %s of %s - %s" % (1+idx, total_pieces, piece_path), 1)
             piece = music21.corpus.parse(piece_path)
             self.add_piece(piece, piece_path)
 
