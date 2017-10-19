@@ -2,11 +2,7 @@
 # from graders import simple_sum_grader
 # from stemmers import index_key_by_pitch
 # from models import MemoryIRSystem, get_snippets_for_pieces
-import datetime
-import random
-
-def print_timing(message, tabcount=0):
-    print("\t" * tabcount + "%s %s" % (datetime.datetime.utcnow(), message))
+# import random
 
 # pieces = list((corpus.parse(piece) for piece in corpus.getComposer('bach')[:10]))
 

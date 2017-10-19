@@ -3,9 +3,8 @@ from tabulate import tabulate
 from music21 import corpus
 from firms.graders import simple_sum_grader
 from firms.stemmers import index_key_by_pitch
-from firms.models import MemoryIRSystem, get_snippets_for_pieces
+from firms.models import MemoryIRSystem, get_snippets_for_pieces, print_timing
 from firms.sql_irsystems import SqlIRSystem
-from firms.firms import print_timing
 
 print()
 print_timing("Loading pieces")

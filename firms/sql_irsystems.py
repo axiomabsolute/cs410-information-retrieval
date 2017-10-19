@@ -1,6 +1,5 @@
-from firms.models import IRSystem, FirmIndex, get_part_details, get_snippets_for_part
+from firms.models import IRSystem, FirmIndex, get_part_details, get_snippets_for_part, print_timing
 import sqlite3
-from firms.firms import print_timing
 
 class SqlIRSystem(IRSystem):
 
@@ -19,19 +18,23 @@ class SqlIRSystem(IRSystem):
 
     def add_piece(self, piece, piece_path):
         conn = sqlite3.connect(self.dbpath)
+        cursor = conn.cursor()
+        cursor.execute("PRAGMA synchronous = OFF")
+        cursor.execute("PRAGMA journal_mode = OFF")
         piece_id = None
         for part in get_part_details(piece):
             piece_name = part[0]
             part_name = part[1]
             if not piece_id:
                 print_timing("Processing %s" % piece_name, 1)
-                piece_id = self.ensure_piece(piece_path, piece_name, conn)
-            part_id = self.ensure_part(piece_id, part[1], conn)
+                piece_id = self.ensure_piece(piece_path, piece_name, conn, cursor)
+            part_id = self.ensure_part(piece_id, part[1], conn, cursor)
             snippets = get_snippets_for_part(part)
             for idx in self.indexes.values():
                 for snippet in snippets:
-                    snippet_id = self.ensure_snippet(snippet, piece_id, part_id, conn)
-                    idx.add_snippet(snippet, snippet_id)
+                    snippet_id = self.ensure_snippet(snippet, piece_id, part_id, conn, cursor)
+                    idx.add_snippet(snippet, snippet_id, conn, cursor)
+        cursor.close()
         conn.close()
 
     def ensure_db(self, conn):
@@ -86,8 +89,7 @@ class SqlIRSystem(IRSystem):
             stemmer_ids[stemmer_name] = cursor.lastrowid
         return stemmer_ids
 
-    def ensure_piece(self, piece_path, piece_name, conn):
-        cursor = conn.cursor()
+    def ensure_piece(self, piece_path, piece_name, conn, cursor):
         cursor.execute("SELECT id FROM pieces WHERE path=? AND name=? LIMIT 1",
             (piece_path, piece_name)
         )
@@ -100,8 +102,7 @@ class SqlIRSystem(IRSystem):
         conn.commit()
         return cursor.lastrowid
 
-    def ensure_part(self, piece_id, part_name, conn):
-        cursor = conn.cursor()
+    def ensure_part(self, piece_id, part_name, conn, cursor):
         cursor.execute("SELECT id FROM parts WHERE piece_id=? AND name=? LIMIT 1", (piece_id, part_name))
         results = cursor.fetchall()
         if results:
@@ -110,8 +111,7 @@ class SqlIRSystem(IRSystem):
         conn.commit()
         return cursor.lastrowid
 
-    def ensure_snippet(self, snippet, piece_id, part_id, conn):
-        cursor = conn.cursor()
+    def ensure_snippet(self, snippet, piece_id, part_id, conn, cursor):
         cursor.execute("SELECT id FROM snippets WHERE piece_id=? AND part_id=? AND offset=?", (piece_id, part_id, snippet.offset))
         results = cursor.fetchall()
         if results:
@@ -126,8 +126,7 @@ class SqlIndex(FirmIndex):
         self.stemmer_id = stemmer_id
         super().__init__(snippets, keyfn, name)
     
-    def ensure_stem(self, stemmer_id, stem, conn):
-        cursor = conn.cursor()
+    def ensure_stem(self, stemmer_id, stem, conn, cursor):
         cursor.execute("SELECT id FROM stems WHERE stemmer_id=? AND stem=?", (stemmer_id, stem))
         results = cursor.fetchall()
         if results:
@@ -136,8 +135,7 @@ class SqlIndex(FirmIndex):
         conn.commit()
         return cursor.lastrowid
     
-    def ensure_entry(self, stem_id, snippet_id, conn):
-        cursor = conn.cursor()
+    def ensure_entry(self, stem_id, snippet_id, conn, cursor):
         cursor.execute("SELECT id FROM entries WHERE stem_id=? AND snippet_id=?", (stem_id, snippet_id))
         results = cursor.fetchall()
         if results:
@@ -146,19 +144,12 @@ class SqlIndex(FirmIndex):
         conn.commit()
         return cursor.lastrowid
     
-    def add_snippet(self, snippet, snippet_id):
-        conn = sqlite3.connect(self.dbpath, timeout=10)
+    def add_snippet(self, snippet, snippet_id, conn, cursor):
         stems = self.keyfn(snippet)
         for stem in stems:
-            stem_id = self.ensure_stem(self.stemmer_id, stem, conn)
-            entry_id = self.ensure_entry(stem_id, snippet_id, conn)
-        conn.close()
+            stem_id = self.ensure_stem(self.stemmer_id, stem, conn, cursor)
+            entry_id = self.ensure_entry(stem_id, snippet_id, conn, cursor)
         return entry_id
-
-
-    def add_snippets(self, snippets, snippet_id):
-        # May want to override this - piece/snippet/part checks only need to happen once
-        super().add_snippets(snippets, snippet_id)
 
     def lookup(self, snippet):
         pass

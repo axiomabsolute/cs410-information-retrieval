@@ -1,7 +1,12 @@
 from collections import defaultdict
 from functools import reduce
 from abc import ABCMeta, abstractmethod
+import datetime
+
 import music21
+
+def print_timing(message, tabcount=0):
+    print("\t" * tabcount + "%s %s" % (datetime.datetime.utcnow(), message))
 
 def flatten(toflatten):
     """
@@ -60,6 +65,7 @@ class IRSystem(metaclass=ABCMeta):
         self.scorers = scorers
         self.indexes = {k:self.makeEmptyIndex(v,k) for k,v in index_methods.items()}
         for piece_path in piece_paths:
+            print_timing("Processing %s" % piece_path, 1)
             piece = music21.corpus.parse(piece_path)
             self.add_piece(piece, piece_path)
 
@@ -93,7 +99,8 @@ class MemoryIRSystem(IRSystem):
             self.piece_names[part[0]] = piece_path
             snippets = get_snippets_for_part(part)
             for idx in self.indexes.values():
-                idx.add_snippets(snippets)
+                for snippet in snippets:
+                    idx.add_snippet(snippet)
     
     def __repr__(self):
         return "IRSystem(%s pieces)" % (len(self.piece_names))
@@ -132,10 +139,6 @@ class FirmIndex(metaclass=ABCMeta):
     @abstractmethod
     def lookup(self, query):
         pass
-
-    def add_snippets(self, snippets, *args):
-        for snippet in snippets:
-            self.add_snippet(snippet, *args)
 
 class MemoryIndex(FirmIndex):
     def __init__(self, snippets, keyfn, name = ""):
