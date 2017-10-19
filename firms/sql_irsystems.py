@@ -3,7 +3,7 @@ import sqlite3
 
 class SqlIRSystem(IRSystem):
 
-    def __init__(self, dbpath, index_methods, scorers = None, piece_paths = []):
+    def __init__(self, dbpath, index_methods, scorers = None, piece_paths = [], rebuild = True):
         # Ensure pieces, stemmers, snippets, parts, stems, and entries tables exist
         # Add each index method to stemmers table
         self.dbpath = dbpath
@@ -11,7 +11,7 @@ class SqlIRSystem(IRSystem):
         self.ensure_db(conn)
         self.stemmer_ids = self.ensure_stemmers(index_methods, conn)
         conn.close()
-        super().__init__(index_methods, scorers, piece_paths)
+        super().__init__(index_methods, scorers, piece_paths, rebuild)
 
     def makeEmptyIndex(self, indexfn, name):
         return SqlIndex(self.dbpath, [], indexfn, name, self.stemmer_ids[name])
@@ -27,7 +27,7 @@ class SqlIRSystem(IRSystem):
             part_name = part[1]
             if not piece_id:
                 piece_id = self.ensure_piece(piece_path, piece_name, conn, cursor)
-            part_id = self.ensure_part(piece_id, part[1], conn, cursor)
+            part_id = self.ensure_part(piece_id, part_name, conn, cursor)
             snippets = get_snippets_for_part(part)
             for idx in self.indexes.values():
                 for snippet in snippets:
@@ -119,6 +119,16 @@ class SqlIRSystem(IRSystem):
         conn.commit()
         return cursor.lastrowid
 
+    def lookup(self, snippet):
+        conn = sqlite3.connect(self.dbpath) 
+        cursor = conn.cursor()
+        return super().lookup(snippet, conn, cursor)
+
+    def query(self, query):
+        conn = sqlite3.connect(self.dbpath) 
+        cursor = conn.cursor()
+        return super().query(query, conn, cursor)
+
 class SqlIndex(FirmIndex):
     def __init__(self, dbpath, snippets, keyfn, name, stemmer_id):
         self.dbpath = dbpath
@@ -150,5 +160,13 @@ class SqlIndex(FirmIndex):
             entry_id = self.ensure_entry(stem_id, snippet_id, conn, cursor)
         return entry_id
 
-    def lookup(self, snippet):
-        pass
+    def lookup(self, snippet, conn, cursor):
+        stems = self.keyfn(snippet)
+        for stem in stems:
+            cursor.execute("""SELECT snippets.id, pieces.name, snippets.part_id as part, snippets.offset FROM snippets
+                            JOIN entries ON entries.snippet_id=snippets.id
+                            JOIN stems ON stems.id=entries.stem_id
+                            JOIN pieces ON pieces.id=snippets.piece_id
+                            WHERE stems.stem=?""", (stem, ))
+        results = cursor.fetchall()
+        return [ {'id': r[0], 'piece': r[1], 'part': r[2], 'offset': r[3]} for r in results ]

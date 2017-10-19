@@ -48,15 +48,16 @@ def get_snippets_for_pieces(pieces):
     return get_snippets_for_parts(parts)
 
 class IRSystem(metaclass=ABCMeta):
-    def __init__(self, index_methods, scorers, piece_paths):
+    def __init__(self, index_methods, scorers, piece_paths, rebuild=True):
         self.index_methods = index_methods
         self.scorers = scorers
         self.indexes = {k:self.makeEmptyIndex(v,k) for k,v in index_methods.items()}
         total_pieces = len(piece_paths)
-        for idx,piece_path in enumerate(piece_paths):
-            print_timing("Processing %s of %s - %s" % (1+idx, total_pieces, piece_path), 1)
-            piece = music21.corpus.parse(piece_path)
-            self.add_piece(piece, piece_path)
+        if rebuild:
+            for idx,piece_path in enumerate(piece_paths):
+                print_timing("Processing %s of %s - %s" % (1+idx, total_pieces, piece_path), 1)
+                piece = music21.corpus.parse(piece_path)
+                self.add_piece(piece, piece_path)
 
     @abstractmethod
     def add_piece(self, piece, piece_path): pass
@@ -64,15 +65,15 @@ class IRSystem(metaclass=ABCMeta):
     @abstractmethod
     def makeEmptyIndex(self, indexfn, name): pass
 
-    def lookup(self, snippet):
-        snippets_by_index_type = {index_name: index.lookup(snippet) for index_name,index in self.indexes.items()}
+    def lookup(self, snippet, *args):
+        snippets_by_index_type = {index_name: index.lookup(snippet, *args) for index_name,index in self.indexes.items()}
         return {scorer_name: scorer(snippets_by_index_type) for scorer_name,scorer in self.scorers.items()}
 
-    def query(self, query):
+    def query(self, query, *args):
         queryStream = music21.tinyNotation.Converter.parse(query)
         queryPart = ("query", "query", queryStream)
         querySnippets = get_snippets_for_part(queryPart)
-        snippets_by_index_type = {index_name: flatten((index.lookup(snippet) for snippet in querySnippets)) for index_name,index in self.indexes.items()}
+        snippets_by_index_type = {index_name: flatten((index.lookup(snippet, *args) for snippet in querySnippets)) for index_name,index in self.indexes.items()}
         return {scorer_name: scorer(snippets_by_index_type) for scorer_name,scorer in self.scorers.items()}
 
 class MemoryIRSystem(IRSystem):
@@ -126,7 +127,7 @@ class FirmIndex(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def lookup(self, query):
+    def lookup(self, snippet, *args):
         pass
 
 class MemoryIndex(FirmIndex):
@@ -137,8 +138,8 @@ class MemoryIndex(FirmIndex):
         for key in self.keyfn(snippet):
             self.index[key].add(snippet)
 
-    def lookup(self, query):
-        return flatten([self.index[key] for key in self.keyfn(query)])
+    def lookup(self, snippet):
+        return flatten([self.index[key] for key in self.keyfn(snippet)])
     
     def merge_indexes(self, index):
         result = MemoryIndex([], self.keyfn, self.name)

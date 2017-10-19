@@ -6,4 +6,4 @@ from firms.models import flatten
 # Each time the query matches a snippet from a piece for each index, give it a score of 1, and sum them
 def simple_sum_grader(snippets_by_index_type):
     snippets = flatten(snippets_by_index_type.values())
-    return Counter([snippet.piece for snippet in snippets])
+    return Counter([snippet['piece'] for snippet in snippets])
