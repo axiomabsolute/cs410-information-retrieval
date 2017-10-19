@@ -26,7 +26,6 @@ class SqlIRSystem(IRSystem):
             piece_name = part[0]
             part_name = part[1]
             if not piece_id:
-                print_timing("Processing %s" % piece_name, 1)
                 piece_id = self.ensure_piece(piece_path, piece_name, conn, cursor)
             part_id = self.ensure_part(piece_id, part[1], conn, cursor)
             snippets = get_snippets_for_part(part)
