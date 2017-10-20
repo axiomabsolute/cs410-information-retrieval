@@ -7,3 +7,8 @@ from firms.models import flatten
 def simple_sum_grader(snippets_by_index_type):
     snippets = flatten(snippets_by_index_type.values())
     return Counter([snippet['piece'] for snippet in snippets])
+
+
+def find_matching_locations(snippets_by_index_type):
+    for index_type,snippets in snippets_by_index_type.values():
+        pass

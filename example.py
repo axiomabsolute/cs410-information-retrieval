@@ -2,16 +2,17 @@ import random
 from tabulate import tabulate
 from music21 import corpus
 from firms.graders import simple_sum_grader
-from firms.stemmers import index_key_by_pitch
+from firms.stemmers import index_key_by_pitch, index_key_by_simple_pitch
 from firms.models import MemoryIRSystem, get_snippets_for_pieces, print_timing
 from firms.sql_irsystems import SqlIRSystem
 
 print()
 print_timing("Loading pieces")
-piece_paths = corpus.getComposer('bach')[:50]
+piece_paths = corpus.getComposer('bach')[:100]
 
 index_methods = {
-    'By Pitch': index_key_by_pitch
+    'By Pitch': index_key_by_pitch,
+    'By Simple Pitch': index_key_by_simple_pitch
 }
 
 scorer_methods = {
@@ -46,7 +47,7 @@ print_timing("Building IR system")
 
 # sqlsystem = SqlIRSystem('example.db.sqlite', index_methods, scorer_methods, piece_paths)
 
-sqlsystem = SqlIRSystem('example.db.sqlite', index_methods, scorer_methods, piece_paths, False)
+sqlsystem = SqlIRSystem('example.db.sqlite', index_methods, scorer_methods, piece_paths, True)
 
 print_timing("Sampling ranges for demonstration")
 sample_paths = random.sample(piece_paths, min(5, len(piece_paths)))
