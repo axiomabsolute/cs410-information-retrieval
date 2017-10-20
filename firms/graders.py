@@ -1,14 +1,14 @@
 from collections import Counter
+from itertools import groupby
+from operator import itemgetter
 from firms.models import flatten
 
-# A grader is a function: Function[Dictionary[index_type, snippets], Dictionary[piece_name, number]
+# A grader is a function: Function[Dictionary[index_type, snippets], Dictionary[piece_name, Dictionary[offset, grade]]
 
-# Each time the query matches a snippet from a piece for each index, give it a score of 1, and sum them
 def simple_sum_grader(snippets_by_index_type):
+    by_piece = itemgetter('piece')
+    by_offset = itemgetter('offset')
     snippets = flatten(snippets_by_index_type.values())
-    return Counter([snippet['piece'] for snippet in snippets])
-
-
-def find_matching_locations(snippets_by_index_type):
-    for index_type,snippets in snippets_by_index_type.values():
-        pass
+    snippets.sort(key=by_piece)
+    grades_by_piece_and_offset = {k:Counter(map(by_offset, g)) for k,g in groupby(snippets, by_piece)}
+    return grades_by_piece_and_offset

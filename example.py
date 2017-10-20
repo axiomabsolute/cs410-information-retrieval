@@ -47,15 +47,11 @@ print_timing("Building IR system")
 
 # sqlsystem = SqlIRSystem('example.db.sqlite', index_methods, scorer_methods, piece_paths)
 
-sqlsystem = SqlIRSystem('example.db.sqlite', index_methods, scorer_methods, piece_paths, True)
+sqlsystem = SqlIRSystem('example.db.sqlite', index_methods, scorer_methods, piece_paths, False)
 
 print_timing("Sampling ranges for demonstration")
 sample_paths = random.sample(piece_paths, min(5, len(piece_paths)))
 sample_pieces = (corpus.parse(piece) for piece in sample_paths)
-## Pick a random part
-## Get all measures
-## Pick a random number, k, from (0,len(measures)-4)
-## Request all measures from k, k+4
 sample_streams = []
 sample_details = []
 for piece in sample_pieces:
@@ -72,7 +68,7 @@ print_timing("Printing results")
 print("==========================================================================")
 table_rows = []
 table_headers = ['Query Source', 'Grading Method', 'Piece', 'Grade']
-for (detail, score_item) in scores_with_details:
+for (detail, (score_item, offsets)) in scores_with_details:
     for (scorer, score) in score_item.items():
         for (matching_piece, grade) in list(score.items())[:5]:
             table_rows.append([
@@ -83,29 +79,5 @@ for (detail, score_item) in scores_with_details:
             ])
 table_rows.sort(key=lambda x: (x[0], x[1], -1*x[3]))
 print(tabulate(table_rows, headers=table_headers))
-
-
-# print_timing("Sampling snippets for demonstration")
-# sample_pieces = (corpus.parse(piece) for piece in random.sample(piece_paths, min(5, len(piece_paths))))
-# random_snippets = random.sample(list(get_snippets_for_pieces(sample_pieces)), 10)
-# scores = [sqlsystem.lookup(s) for s in random_sippets]
-# scored_snippets = zip(random_snippets, scores)
-
-# print_timing("Printing results")
-# print("==========================================================================")
-# table_headers = ['Query Source', 'Query Line', 'Grading Method', 'Piece', 'Grade']
-# table_rows = []
-# for (snippet, scores) in scored_snippets:
-#     for (scorer, score) in scores.items():
-#         for (matching_piece, grade) in score.items():
-#             table_rows.append([
-#                 "%s %s (m %s)" % (snippet.piece, snippet.part, snippet.offset),
-#                 ' '.join(snippet.simple_line()),
-#                 scorer,
-#                 matching_piece,
-#                 grade
-#             ])
-# table_rows.sort(key=lambda x: (x[0], x[2], -1*x[4]))
-# print(tabulate(table_rows, headers=table_headers))
 
 input("\nDone - press enter to exit.")

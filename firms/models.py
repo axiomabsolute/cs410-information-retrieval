@@ -30,6 +30,15 @@ def get_notes_and_rests(part):
     """
     return list(part.recurse().notesAndRests)
 
+# Aggregate grades from grader by piece
+def sum_grades_by_piece(grades_by_piece_and_offset):
+    return {k: sum(v.values()) for k,v in grades_by_piece_and_offset.items()}
+
+# Create an ordered list of matching offsets within 
+# Kind of a pain to find where this is, since all we have is the offset. Measure number would be helpful
+def sorted_offsets_by_piece(grades_by_piece_and_offset):
+   return {k: sorted(v.items(), key=lambda x: x[1], reverse=True) for k,v in grades_by_piece_and_offset.items()} 
+
 # When we get snippets, we need to account for chords. To handle this, treat each note value as a set and compute the cartesian
 # product to produce all possible one-line snippets for the part
 def get_snippets_for_piece(piece_name, part_name, notes, snippet_length):
@@ -79,7 +88,11 @@ class IRSystem(metaclass=ABCMeta):
         queryPart = ("query", "query", queryStream)
         querySnippets = get_snippets_for_part(queryPart)
         snippets_by_index_type = {index_name: flatten((index.lookup(snippet, *args) for snippet in querySnippets)) for index_name,index in self.indexes.items()}
-        return {scorer_name: scorer(snippets_by_index_type) for scorer_name,scorer in self.scorers.items()}
+        scores_by_scorer = {scorer_name: scorer(snippets_by_index_type) for scorer_name,scorer in self.scorers.items()}
+        return (
+            {scorer_name: sum_grades_by_piece(scores) for scorer_name,scores in scores_by_scorer.items()},
+            {scorer_name: sorted_offsets_by_piece(scores) for scorer_name,scores in scores_by_scorer.items()}
+        )
 
 class MemoryIRSystem(IRSystem):
     def __init__(self, index_methods, scorers = None, piece_paths = []):
