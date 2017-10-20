@@ -29,8 +29,8 @@ class SqlIRSystem(IRSystem):
                 piece_id = self.ensure_piece(piece_path, piece_name, conn, cursor)
             part_id = self.ensure_part(piece_id, part_name, conn, cursor)
             snippets = get_snippets_for_part(part)
-            for idx in self.indexes.values():
-                for snippet in snippets:
+            for snippet in snippets:
+                for idx in self.indexes.values():
                     snippet_id = self.ensure_snippet(snippet, piece_id, part_id, conn, cursor)
                     idx.add_snippet(snippet, snippet_id, conn, cursor)
         cursor.close()
@@ -86,6 +86,7 @@ class SqlIRSystem(IRSystem):
             if not results:
                 cursor.execute("INSERT INTO stemmers (name) VALUES (?)", (stemmer_name, ))
             stemmer_ids[stemmer_name] = cursor.lastrowid
+        conn.commit()
         return stemmer_ids
 
     def ensure_piece(self, piece_path, piece_name, conn, cursor):
