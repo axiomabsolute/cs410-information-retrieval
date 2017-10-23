@@ -5,6 +5,9 @@ the snippet. A stemming function may produce multiple stemmed forms for a given 
 Internally, most stemming functions work on either individual notes or pairwise between notes.
 """
 
+def join_stem_by_note(note_stems):
+    return [ ''.join(stem) for stem in note_stems ]
+
 def stem_by_pitch(snippet):
     return [
         [note.pitch.nameWithOctave if note.isNote else
@@ -14,7 +17,7 @@ def stem_by_pitch(snippet):
     ]
 
 def index_key_by_pitch(snippet):
-    return [ ' '.join(stem) for stem in stem_by_pitch(snippet) ]
+    return join_stem_by_note(stem_by_pitch(snippet))
 
 def stem_by_simple_pitch(snippet):
     return [
@@ -25,5 +28,12 @@ def stem_by_simple_pitch(snippet):
     ]
 
 def index_key_by_simple_pitch(snippet):
-    return [ ' '.join(stem) for stem in stem_by_simple_pitch(snippet) ]
+    return join_stem_by_note(stem_by_simple_pitch(snippet))
 
+def stem_by_rythm(snippet):
+    return [
+        note.duration.fullName for note in snippet.notes
+    ]
+
+def index_key_by_rythm(snippet):
+    return join_stem_by_note(stem_by_rythm(snippet))
