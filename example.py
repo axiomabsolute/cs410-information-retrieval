@@ -2,18 +2,19 @@ import random
 from tabulate import tabulate
 from music21 import corpus
 from firms.graders import simple_sum_grader
-from firms.stemmers import index_key_by_pitch, index_key_by_simple_pitch, index_key_by_rythm
+from firms.stemmers import index_key_by_pitch, index_key_by_simple_pitch, index_key_by_rythm, index_key_by_normalized_rythm
 from firms.models import MemoryIRSystem, get_snippets_for_pieces, print_timing
 from firms.sql_irsystems import SqlIRSystem
 
 print()
 print_timing("Loading pieces")
-piece_paths = corpus.getComposer('bach')[:100]
+piece_paths = corpus.getComposer('bach')[:1]
 
 index_methods = {
     'By Pitch': index_key_by_pitch,
     'By Simple Pitch': index_key_by_simple_pitch,
-    'By Rythm': index_key_by_rythm
+    'By Rythm': index_key_by_rythm,
+    'By Normal Rythm': index_key_by_normalized_rythm
 }
 
 scorer_methods = {
