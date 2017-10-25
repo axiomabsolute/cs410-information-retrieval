@@ -86,7 +86,8 @@ class IRSystem(metaclass=ABCMeta):
         except:
             queryStream = music21.tinyNotation.Converter.parse(query)
         queryPart = ("query", "query", queryStream)
-        querySnippets = get_snippets_for_part(queryPart)
+        # This needs to be a list because it gets iterated over for every index type
+        querySnippets = list(get_snippets_for_part(queryPart))
         snippets_by_index_type = {index_name: flatten((index.lookup(snippet, *args) for snippet in querySnippets)) for index_name,index in self.indexes.items()}
         scores_by_scorer = {scorer_name: scorer(snippets_by_index_type) for scorer_name,scorer in self.scorers.items()}
         return (

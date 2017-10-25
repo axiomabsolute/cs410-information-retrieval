@@ -126,8 +126,7 @@ class SqlIRSystem(IRSystem):
         values = [ (piece_id, part_id, snippet.offset) for snippet in snippets ]
         cursor.executemany("INSERT OR IGNORE INTO snippets (piece_id, part_id, offset) VALUES (?, ?, ?)", values)
         conn.commit()
-        for value in values:
-            cursor.execute("SELECT id FROM snippets WHERE piece_id=? AND part_id=? AND offset=?", value)
+        cursor.execute("SELECT id FROM snippets WHERE piece_id=? AND part_id=?", (piece_id, part_id))
         return [r[0] for r in cursor.fetchall()]
 
     def lookup(self, snippet):
@@ -168,23 +167,18 @@ class SqlIndex(FirmIndex):
         values = list(zip(stem_ids, snippet_ids))
         cursor.executemany("INSERT OR IGNORE INTO entries (stem_id, snippet_id) VALUES (?, ?)", values)
         conn.commit()
-        for value in values:
-            cursor.execute("SELECT id FROM entries WHERE stem_id=? AND snippet_id=? LIMIT 1", value)
-        return [r[0] for r in cursor.fetchall()]
+        return [r[0] for value in values for r in cursor.execute("SELECT id FROM entries WHERE stem_id=? AND snippet_id=? LIMIT 1", value)]
 
     def ensure_stems(self, stemmer_id, stems, conn, cursor):
         values = [ (stemmer_id, stem) for stem in stems ]
         cursor.executemany("INSERT OR IGNORE INTO stems (stemmer_id, stem) VALUES (?, ?)", values)
         conn.commit()
-        for value in values:
-            cursor.execute("SELECT id FROM stems WHERE stemmer_id=? AND stem=? LIMIT 1", value)
-        return [r[0] for r in cursor.fetchall()]
+        return [r[0] for value in values for r in cursor.execute("SELECT id FROM stems WHERE stemmer_id=? AND stem=? LIMIT 1", value)]
 
     def add_snippets(self, snippets, snippet_ids, conn, cursor):
-        stems = (self.keyfn(snippet)[0] for snippet in snippets)
+        stems = [self.keyfn(snippet)[0] for snippet in snippets]
         stem_ids = self.ensure_stems(self.stemmer_id, stems, conn, cursor)
-        entry_ids = self.ensure_entries(stem_ids, snippet_ids, conn, cursor)
-        return entry_ids
+        return self.ensure_entries(stem_ids, snippet_ids, conn, cursor)
 
     def add_snippet(self, snippet, snippet_id, conn, cursor):
         stems = self.keyfn(snippet)

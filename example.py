@@ -52,7 +52,7 @@ print_timing("Building IR system")
 sqlsystem = SqlIRSystem('example.db.sqlite', index_methods, scorer_methods, piece_paths, True)
 
 print_timing("Sampling ranges for demonstration")
-sample_paths = random.sample(piece_paths, min(5, len(piece_paths)))
+sample_paths = random.sample(piece_paths, min(1, len(piece_paths)))
 sample_pieces = (corpus.parse(piece) for piece in sample_paths)
 sample_streams = []
 sample_details = []
@@ -69,17 +69,20 @@ scores_with_details = zip(sample_details, scores)
 print_timing("Printing results")
 print("==========================================================================")
 table_rows = []
-table_headers = ['Query Source', 'Grading Method', 'Piece', 'Grade']
+table_headers = ['Query Source', 'Grading Method', 'Piece', 'Is Actual', 'Result Number', 'Grade']
 for (detail, (score_item, offsets)) in scores_with_details:
     for (scorer, score) in score_item.items():
-        for (matching_piece, grade) in list(score.items())[:5]:
+        for result_number,(matching_piece, grade) in enumerate(score.items()):
+            is_actual = detail[0] == matching_piece
             table_rows.append([
                 "%s %s (m %s)" % (detail[0], detail[1].partName, detail[2]),
                 scorer,
                 matching_piece,
+                is_actual,
+                result_number,
                 grade
             ])
-table_rows.sort(key=lambda x: (x[0], x[1], -1*x[3]))
+table_rows.sort(key=lambda x: (x[0], x[1], -1*x[5]))
 print(tabulate(table_rows, headers=table_headers))
 
 input("\nDone - press enter to exit.")
