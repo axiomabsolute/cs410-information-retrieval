@@ -1,8 +1,8 @@
 import random
-from operator import itemgetter
+from operator import attrgetter
 from tabulate import tabulate
 from music21 import corpus
-from firms.graders import simple_sum_grader
+from firms.graders import count_grader, log_count_grader
 from firms.stemmers import index_key_by_pitch, index_key_by_simple_pitch, index_key_by_rythm, index_key_by_normalized_rythm
 from firms.models import MemoryIRSystem, get_snippets_for_pieces, print_timing
 from firms.sql_irsystems import SqlIRSystem
@@ -19,36 +19,12 @@ index_methods = {
 }
 
 scorer_methods = {
-    'Simple Sum': simple_sum_grader
+    'Count': count_grader,
+    'Log Count': log_count_grader
 }
 
 print_timing("Building IR system")
 # irsystem = MemoryIRSystem(index_methods, scorer_methods, piece_paths)
-
-# print_timing("Sampling snippets for demonstration")
-# sample_pieces = (corpus.parse(piece) for piece in random.sample(piece_paths, min(5, len(piece_paths))))
-# random_snippets = random.sample(list(get_snippets_for_pieces(sample_pieces)), 20)
-# scores = [irsystem.lookup(s) for s in random_snippets]
-# scored_snippets = zip(random_snippets, scores)
-
-# print_timing("Printing results")
-# print("==========================================================================")
-# table_headers = ['Query Source', 'Query Line', 'Grading Method', 'Piece', 'Grade']
-# table_rows = []
-# for (snippet, scores) in scored_snippets:
-#     for (scorer, score) in scores.items():
-#         for (matching_piece, grade) in score.items():
-#             table_rows.append([
-#                 "%s %s (m %s)" % (snippet.piece, snippet.part, snippet.offset),
-#                 ' '.join(snippet.simple_line()),
-#                 scorer,
-#                 matching_piece,
-#                 grade
-#             ])
-# table_rows.sort(key=lambda x: (x[0], x[2], -1*x[4]))
-# print(tabulate(table_rows, headers=table_headers))
-
-# sqlsystem = SqlIRSystem('example.db.sqlite', index_methods, scorer_methods, piece_paths)
 
 sqlsystem = SqlIRSystem('example.db.sqlite', index_methods, scorer_methods, piece_paths, False)
 
@@ -71,15 +47,16 @@ print_timing("Printing results")
 print("==========================================================================")
 table_rows = []
 table_headers = ['Query Source', 'Grading Method', 'Piece', 'Is Actual', 'Rank', 'Grade']
-for (detail, (score_item, offsets)) in scores_with_details:
-    for (scorer, score) in score_item.items():
-        for result_number,(matching_piece, grade) in enumerate(sorted(score.items(), key=itemgetter(1), reverse=True)):
-            is_actual = detail[0] == matching_piece
+for (detail, grader_results) in scores_with_details:
+    for grader,results in grader_results.items():
+        results_ordered_by_grade = sorted(results, key=attrgetter('grade'), reverse=True)
+        for result_number,(piece, grade, meta) in enumerate(results_ordered_by_grade):
+            is_actual = detail[0] == piece
             if result_number < 5 or is_actual:
                 table_rows.append([
                     "%s %s (m %s)" % (detail[0], detail[1].partName, detail[2]),
-                    scorer,
-                    matching_piece,
+                    grader,
+                    piece,
                     is_actual,
                     result_number,
                     grade

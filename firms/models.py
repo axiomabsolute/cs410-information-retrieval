@@ -1,9 +1,12 @@
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from functools import reduce
 from abc import ABCMeta, abstractmethod
 import datetime
 
 import music21
+
+GraderMatch = namedtuple('GraderMatch', ['stemmer', 'snippet'])
+GraderResult = namedtuple('GraderResult', ['piece', 'grade', 'meta'])
 
 def print_timing(message, tabcount=0):
     print("\t" * tabcount + "%s %s" % (datetime.datetime.utcnow(), message))
@@ -29,15 +32,6 @@ def get_notes_and_rests(part):
     part - the part to extract
     """
     return list(part.recurse().notesAndRests)
-
-# Aggregate grades from grader by piece
-def sum_grades_by_piece(grades_by_piece_and_offset):
-    return {k: sum(v.values()) for k,v in grades_by_piece_and_offset.items()}
-
-# Create an ordered list of matching offsets within 
-# Kind of a pain to find where this is, since all we have is the offset. Measure number would be helpful
-def sorted_offsets_by_piece(grades_by_piece_and_offset):
-   return {k: sorted(v.items(), key=lambda x: x[1], reverse=True) for k,v in grades_by_piece_and_offset.items()} 
 
 # When we get snippets, we need to account for chords. To handle this, treat each note value as a set and compute the cartesian
 # product to produce all possible one-line snippets for the part
@@ -88,12 +82,14 @@ class IRSystem(metaclass=ABCMeta):
         queryPart = ("query", "query", queryStream)
         # This needs to be a list because it gets iterated over for every index type
         querySnippets = list(get_snippets_for_part(queryPart))
-        snippets_by_index_type = {index_name: flatten((index.lookup(snippet, *args) for snippet in querySnippets)) for index_name,index in self.indexes.items()}
+        snippets_by_index_type = []
+        for index_name,index in self.indexes.items():
+            for snippet in querySnippets:
+                lookup_results = index.lookup(snippet, *args)
+                for lookup_result in lookup_results:
+                    snippets_by_index_type.append( GraderMatch(stemmer=index_name, snippet=lookup_result) )
         scores_by_scorer = {scorer_name: scorer(snippets_by_index_type) for scorer_name,scorer in self.scorers.items()}
-        return (
-            {scorer_name: sum_grades_by_piece(scores) for scorer_name,scores in scores_by_scorer.items()},
-            {scorer_name: sorted_offsets_by_piece(scores) for scorer_name,scores in scores_by_scorer.items()}
-        )
+        return scores_by_scorer
 
 class MemoryIRSystem(IRSystem):
     def __init__(self, index_methods, scorers = None, piece_paths = []):
