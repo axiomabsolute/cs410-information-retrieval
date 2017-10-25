@@ -28,11 +28,10 @@ class SqlIRSystem(IRSystem):
             if not piece_id:
                 piece_id = self.ensure_piece(piece_path, piece_name, conn, cursor)
             part_id = self.ensure_part(piece_id, part_name, conn, cursor)
-            snippets = get_snippets_for_part(part)
-            for snippet in snippets:
-                for idx in self.indexes.values():
-                    snippet_id = self.ensure_snippet(snippet, piece_id, part_id, conn, cursor)
-                    idx.add_snippet(snippet, snippet_id, conn, cursor)
+            snippets = list(get_snippets_for_part(part))
+            snippet_ids = [self.ensure_snippet(snippet, piece_id, part_id, conn, cursor) for snippet in snippets]
+            for idx in self.indexes.values():
+                idx.add_snippets(snippets, snippet_ids, conn, cursor)
         cursor.close()
         conn.close()
 
@@ -59,13 +58,15 @@ class SqlIRSystem(IRSystem):
         cursor.execute("""CREATE TABLE IF NOT EXISTS stems (id INTEGER PRIMARY KEY ASC,
                                                 stemmer_id INTEGER NOT NULL,
                                                 stem TEXT NOT NULL,
-                                                FOREIGN KEY (stemmer_id) REFERENCES stemmers(id)
+                                                FOREIGN KEY (stemmer_id) REFERENCES stemmers(id),
+                                                CONSTRAINT unique_stem UNIQUE (stemmer_id, stem)
                         )""")
         cursor.execute("""CREATE TABLE IF NOT EXISTS entries (id INTEGER PRIMARY KEY ASC,
                                                 stem_id INTEGER NOT NULL,
                                                 snippet_id INTEGER NOT NULL,
                                                 FOREIGN KEY (stem_id) REFERENCES stems(id),
-                                                FOREIGN KEY (snippet_id) REFERENCES snippets(id)
+                                                FOREIGN KEY (snippet_id) REFERENCES snippets(id),
+                                                CONSTRAINT unique_entry UNIQUE (stem_id, snippet_id)
                         )""")
         conn.commit()
         cursor.execute("""CREATE INDEX IF NOT EXISTS piece_path_idx ON pieces(path)""")
@@ -137,16 +138,16 @@ class SqlIndex(FirmIndex):
         super().__init__(snippets, keyfn, name)
     
     def ensure_stem(self, stemmer_id, stem, conn, cursor):
-        cursor.execute("SELECT id FROM stems WHERE stemmer_id=? AND stem=?", (stemmer_id, stem))
+        cursor.execute("SELECT id FROM stems WHERE stemmer_id=? AND stem=? LIMIT 1", (stemmer_id, stem))
         results = cursor.fetchall()
         if results:
             return results[0][0]
         cursor.execute("INSERT INTO stems (stemmer_id, stem) VALUES (?, ?)", (stemmer_id, stem))
         conn.commit()
         return cursor.lastrowid
-    
+
     def ensure_entry(self, stem_id, snippet_id, conn, cursor):
-        cursor.execute("SELECT id FROM entries WHERE stem_id=? AND snippet_id=?", (stem_id, snippet_id))
+        cursor.execute("SELECT id FROM entries WHERE stem_id=? AND snippet_id=? LIMIT 1", (stem_id, snippet_id))
         results = cursor.fetchall()
         if results:
             return results[0][0]
@@ -154,6 +155,28 @@ class SqlIndex(FirmIndex):
         conn.commit()
         return cursor.lastrowid
     
+    def ensure_entries(self, stem_ids, snippet_ids, conn, cursor):
+        values = list(zip(stem_ids, snippet_ids))
+        cursor.executemany("INSERT OR IGNORE INTO entries (stem_id, snippet_id) VALUES (?, ?)", values)
+        conn.commit()
+        for value in values:
+            cursor.execute("SELECT id FROM entries WHERE stem_id=? AND snippet_id=? LIMIT 1", value)
+        return [r[0] for r in cursor.fetchall()]
+
+    def ensure_stems(self, stemmer_id, stems, conn, cursor):
+        values = [ (stemmer_id, stem) for stem in stems ]
+        cursor.executemany("INSERT OR IGNORE INTO stems (stemmer_id, stem) VALUES (?, ?)", values)
+        conn.commit()
+        for value in values:
+            cursor.execute("SELECT id FROM stems WHERE stemmer_id=? AND stem=? LIMIT 1", value)
+        return [r[0] for r in cursor.fetchall()]
+
+    def add_snippets(self, snippets, snippet_ids, conn, cursor):
+        stems = (self.keyfn(snippet)[0] for snippet in snippets)
+        stem_ids = self.ensure_stems(self.stemmer_id, stems, conn, cursor)
+        entry_ids = self.ensure_entries(stem_ids, snippet_ids, conn, cursor)
+        return entry_ids
+
     def add_snippet(self, snippet, snippet_id, conn, cursor):
         stems = self.keyfn(snippet)
         for stem in stems:
