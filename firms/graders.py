@@ -36,3 +36,23 @@ def log_count_grader(matches):
         for _,stemmer_matches in groupby(piece_matches, by_stemmer):
             result[piece] = result[piece] + log(len(list(stemmer_matches)))
     return ( GraderResult(piece=k, grade=v, meta={}) for k,v in result.items())
+
+def weighted_sum_grader_factory(weights_by_stemmer):
+    def weighted_sum_grader(matches):
+        result = defaultdict(lambda: 0)
+        matches.sort(key=by_snippet_piece)
+        for piece,piece_matches in groupby(matches, by_snippet_piece):
+            for stemmer,stemmer_matches in groupby(piece_matches, by_stemmer):
+                result[piece] = result[piece] + (weights_by_stemmer[stemmer] * len(list(stemmer_matches)))
+        return ( GraderResult(piece=k, grade=v, meta={}) for k,v in result.items())
+    return weighted_sum_grader
+
+def log_weighted_sum_grader_factory(weights_by_stemmer):
+    def weighted_sum_grader(matches):
+        result = defaultdict(lambda: 0)
+        matches.sort(key=by_snippet_piece)
+        for piece,piece_matches in groupby(matches, by_snippet_piece):
+            for stemmer,stemmer_matches in groupby(piece_matches, by_stemmer):
+                result[piece] = result[piece] + (weights_by_stemmer[stemmer] * log(len(list(stemmer_matches))))
+        return ( GraderResult(piece=k, grade=v, meta={}) for k,v in result.items())
+    return weighted_sum_grader

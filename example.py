@@ -2,7 +2,7 @@ import random
 from operator import attrgetter
 from tabulate import tabulate
 from music21 import corpus
-from firms.graders import count_grader, log_count_grader
+from firms.graders import count_grader, log_count_grader, weighted_sum_grader_factory, log_weighted_sum_grader_factory
 from firms.stemmers import index_key_by_pitch, index_key_by_simple_pitch, index_key_by_rythm, index_key_by_normalized_rythm
 from firms.models import MemoryIRSystem, get_snippets_for_pieces, print_timing
 from firms.sql_irsystems import SqlIRSystem
@@ -18,9 +18,12 @@ index_methods = {
     'By Normal Rythm': index_key_by_normalized_rythm
 }
 
+weights = {'By Pitch': 2, 'By Simple Pitch': 1, 'By Rythm': .1, 'By Normal Rythm': .1}
 scorer_methods = {
     'Count': count_grader,
-    'Log Count': log_count_grader
+    'Log Count': log_count_grader,
+    'Linear': weighted_sum_grader_factory(weights),
+    'LogLinar': log_weighted_sum_grader_factory(weights)
 }
 
 print_timing("Building IR system")
