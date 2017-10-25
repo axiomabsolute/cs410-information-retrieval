@@ -9,7 +9,7 @@ from firms.sql_irsystems import SqlIRSystem
 
 print()
 print_timing("Loading pieces")
-piece_paths = corpus.getComposer('bach')[:5]
+piece_paths = corpus.getComposer('bach')
 
 index_methods = {
     'By Pitch': index_key_by_pitch,
@@ -29,10 +29,10 @@ scorer_methods = {
 print_timing("Building IR system")
 # irsystem = MemoryIRSystem(index_methods, scorer_methods, piece_paths)
 
-sqlsystem = SqlIRSystem('example.db.sqlite', index_methods, scorer_methods, piece_paths, True)
+sqlsystem = SqlIRSystem('example.db.sqlite', index_methods, scorer_methods, piece_paths, False)
 
 print_timing("Sampling ranges for demonstration")
-sample_paths = random.sample(piece_paths, min(1, len(piece_paths)))
+sample_paths = random.sample(piece_paths, min(10, len(piece_paths)))
 sample_pieces = (corpus.parse(piece) for piece in sample_paths)
 sample_streams = []
 sample_details = []
@@ -44,7 +44,11 @@ for piece in sample_pieces:
     sample_streams.append(part.measures(idx, idx+4).recurse().notesAndRests)
     sample_details.append((piece.metadata.title, part, idx))
 
-scores = [sqlsystem.query(query) for query in sample_streams]
+print_timing("Scoring samples")
+scores = []
+for detail,query in zip(sample_details, sample_streams):
+    print_timing("Querying %s (%s)" % (detail[0], detail[1].partName), 1)
+    scores.append(sqlsystem.query(query))
 scores_with_details = zip(sample_details, scores)
 print_timing("Printing results")
 print("==========================================================================")
