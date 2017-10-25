@@ -29,7 +29,7 @@ class SqlIRSystem(IRSystem):
                 piece_id = self.ensure_piece(piece_path, piece_name, conn, cursor)
             part_id = self.ensure_part(piece_id, part_name, conn, cursor)
             snippets = list(get_snippets_for_part(part))
-            snippet_ids = [self.ensure_snippet(snippet, piece_id, part_id, conn, cursor) for snippet in snippets]
+            snippet_ids = self.ensure_snippets(snippets, piece_id, part_id, conn, cursor)
             for idx in self.indexes.values():
                 idx.add_snippets(snippets, snippet_ids, conn, cursor)
         cursor.close()
@@ -53,7 +53,8 @@ class SqlIRSystem(IRSystem):
                                                     part_id INTEGER NOT NULL,
                                                     offset INTEGER NOT NULL,
                                                     FOREIGN KEY (part_id) REFERENCES parts(id),
-                                                    FOREIGN KEY (piece_id) REFERENCES pieces(id)
+                                                    FOREIGN KEY (piece_id) REFERENCES pieces(id),
+                                                    CONSTRAINT unique_snippet UNIQUE (piece_id, part_id, offset)
                         )""")
         cursor.execute("""CREATE TABLE IF NOT EXISTS stems (id INTEGER PRIMARY KEY ASC,
                                                 stemmer_id INTEGER NOT NULL,
@@ -120,6 +121,14 @@ class SqlIRSystem(IRSystem):
         cursor.execute("INSERT INTO snippets (piece_id, part_id, offset) VALUES (?, ?, ?)", (piece_id, part_id, snippet.offset))
         conn.commit()
         return cursor.lastrowid
+
+    def ensure_snippets(self, snippets, piece_id, part_id, conn, cursor):
+        values = [ (piece_id, part_id, snippet.offset) for snippet in snippets ]
+        cursor.executemany("INSERT INTO snippets (piece_id, part_id, offset) VALUES (?, ?, ?)", values)
+        conn.commit()
+        for value in values:
+            cursor.execute("SELECT id FROM snippets WHERE piece_id=? AND part_id=? AND offset=?", value)
+        return [r[0] for r in cursor.fetchall()]
 
     def lookup(self, snippet):
         conn = sqlite3.connect(self.dbpath) 
