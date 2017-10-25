@@ -1,4 +1,5 @@
 import random
+from operator import itemgetter
 from tabulate import tabulate
 from music21 import corpus
 from firms.graders import simple_sum_grader
@@ -8,7 +9,7 @@ from firms.sql_irsystems import SqlIRSystem
 
 print()
 print_timing("Loading pieces")
-piece_paths = corpus.getComposer('bach')[:400]
+piece_paths = corpus.getComposer('bach')
 
 index_methods = {
     'By Pitch': index_key_by_pitch,
@@ -49,10 +50,10 @@ print_timing("Building IR system")
 
 # sqlsystem = SqlIRSystem('example.db.sqlite', index_methods, scorer_methods, piece_paths)
 
-sqlsystem = SqlIRSystem('example.db.sqlite', index_methods, scorer_methods, piece_paths, True)
+sqlsystem = SqlIRSystem('example.db.sqlite', index_methods, scorer_methods, piece_paths, False)
 
 print_timing("Sampling ranges for demonstration")
-sample_paths = random.sample(piece_paths, min(1, len(piece_paths)))
+sample_paths = random.sample(piece_paths, min(10, len(piece_paths)))
 sample_pieces = (corpus.parse(piece) for piece in sample_paths)
 sample_streams = []
 sample_details = []
@@ -69,19 +70,20 @@ scores_with_details = zip(sample_details, scores)
 print_timing("Printing results")
 print("==========================================================================")
 table_rows = []
-table_headers = ['Query Source', 'Grading Method', 'Piece', 'Is Actual', 'Result Number', 'Grade']
+table_headers = ['Query Source', 'Grading Method', 'Piece', 'Is Actual', 'Rank', 'Grade']
 for (detail, (score_item, offsets)) in scores_with_details:
     for (scorer, score) in score_item.items():
-        for result_number,(matching_piece, grade) in enumerate(score.items()):
+        for result_number,(matching_piece, grade) in enumerate(sorted(score.items(), key=itemgetter(1), reverse=True)):
             is_actual = detail[0] == matching_piece
-            table_rows.append([
-                "%s %s (m %s)" % (detail[0], detail[1].partName, detail[2]),
-                scorer,
-                matching_piece,
-                is_actual,
-                result_number,
-                grade
-            ])
+            if result_number < 5 or is_actual:
+                table_rows.append([
+                    "%s %s (m %s)" % (detail[0], detail[1].partName, detail[2]),
+                    scorer,
+                    matching_piece,
+                    is_actual,
+                    result_number,
+                    grade
+                ])
 table_rows.sort(key=lambda x: (x[0], x[1], -1*x[5]))
 print(tabulate(table_rows, headers=table_headers))
 
