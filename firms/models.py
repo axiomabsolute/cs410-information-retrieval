@@ -24,7 +24,7 @@ def get_part_details(piece):
     """
     piece_title = piece.metadata.title
     for idx,part in enumerate(piece.recurse().parts):
-        yield (piece_title, part.partName or "Part %s" % idx, part)
+        yield Part(piece_title, part.partName or "Part %s" % idx, part)
 
 def get_notes_and_rests(part):
     """
@@ -33,22 +33,11 @@ def get_notes_and_rests(part):
     """
     return list(part.recurse().notesAndRests)
 
-# When we get snippets, we need to account for chords. To handle this, treat each note value as a set and compute the cartesian
-# product to produce all possible one-line snippets for the part
 def get_snippets_for_piece(piece_name, part_name, notes, snippet_length):
     return (Snippet(piece_name, part_name, notes[i: i+snippet_length], i) for i in range(0, 1 + len(notes) - snippet_length))
 
 def get_snippets_for_part(part):
-    return get_snippets_for_piece(part[0], part[1], get_notes_and_rests(part[2]), 5)
-
-def get_snippets_for_parts(parts):
-    for snippets_by_part in (get_snippets_for_piece(part[0], part[1], get_notes_and_rests(part[2]), 5) for part in parts):
-        for snippet in snippets_by_part:
-            yield snippet
-
-def get_snippets_for_pieces(pieces):
-    parts = (part for piece in pieces for part in get_part_details(piece))
-    return get_snippets_for_parts(parts)
+    return get_snippets_for_piece(part.piece, part.name, get_notes_and_rests(part.part), 5)
 
 class IRSystem(metaclass=ABCMeta):
     def __init__(self, index_methods, scorers, piece_paths, rebuild=True):
@@ -79,7 +68,7 @@ class IRSystem(metaclass=ABCMeta):
             queryStream = query
         except:
             queryStream = music21.tinyNotation.Converter.parse(query)
-        queryPart = ("query", "query", queryStream)
+        queryPart = Part("query", "query", queryStream)
         # This needs to be a list because it gets iterated over for every index type
         querySnippets = list(get_snippets_for_part(queryPart))
         snippets_by_index_type = []
@@ -101,7 +90,7 @@ class MemoryIRSystem(IRSystem):
     
     def add_piece(self, piece, piece_path):
         for part in get_part_details(piece):
-            self.piece_names[part[0]] = piece_path
+            self.piece_names[part.piece] = piece_path
             snippets = get_snippets_for_part(part)
             for idx in self.indexes.values():
                 for snippet in snippets:
@@ -110,7 +99,6 @@ class MemoryIRSystem(IRSystem):
     def __repr__(self):
         return "IRSystem(%s pieces)" % (len(self.piece_names))
                         
-
 class Snippet:
     def __init__(self, piece_name, part, notes, offset):
         self.piece = piece_name
@@ -128,6 +116,12 @@ class Snippet:
         
     def __repr__(self):
         return "Snippet(%s, %s, %s, %s)" % (self.piece, self.part, self.offset, self.simple_line())
+
+class Part:
+    def __init__(self, piece, name, part):
+        self.piece = piece
+        self.name = name
+        self.part = part
 
 class FirmIndex(metaclass=ABCMeta):
     def __init__(self, snippets, keyfn, name = ""):

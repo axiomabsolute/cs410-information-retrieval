@@ -23,8 +23,8 @@ class SqlIRSystem(IRSystem):
         cursor.execute("PRAGMA journal_mode = OFF")
         piece_id = None
         for part in get_part_details(piece):
-            piece_name = part[0]
-            part_name = part[1]
+            piece_name = part.piece
+            part_name = part.name
             if not piece_id:
                 piece_id = self.ensure_piece(piece_path, piece_name, conn, cursor)
             part_id = self.ensure_part(piece_id, part_name, conn, cursor)

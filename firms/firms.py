@@ -1,7 +1,7 @@
 # from music21 import corpus
 # from graders import simple_sum_grader
 # from stemmers import index_key_by_pitch
-# from models import MemoryIRSystem, get_snippets_for_pieces
+# from models import MemoryIRSystem
 # import random
 
 # pieces = list((corpus.parse(piece) for piece in corpus.getComposer('bach')[:10]))
