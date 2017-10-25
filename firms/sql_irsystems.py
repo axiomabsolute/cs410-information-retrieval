@@ -124,7 +124,7 @@ class SqlIRSystem(IRSystem):
 
     def ensure_snippets(self, snippets, piece_id, part_id, conn, cursor):
         values = [ (piece_id, part_id, snippet.offset) for snippet in snippets ]
-        cursor.executemany("INSERT INTO snippets (piece_id, part_id, offset) VALUES (?, ?, ?)", values)
+        cursor.executemany("INSERT OR IGNORE INTO snippets (piece_id, part_id, offset) VALUES (?, ?, ?)", values)
         conn.commit()
         for value in values:
             cursor.execute("SELECT id FROM snippets WHERE piece_id=? AND part_id=? AND offset=?", value)
