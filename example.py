@@ -4,12 +4,17 @@ from tabulate import tabulate
 from music21 import corpus
 from firms.graders import count_grader, log_count_grader, weighted_sum_grader_factory, log_weighted_sum_grader_factory
 from firms.stemmers import index_key_by_pitch, index_key_by_simple_pitch, index_key_by_rythm, index_key_by_normalized_rythm
-from firms.models import MemoryIRSystem, print_timing
+from firms.models import MemoryIRSystem, print_timing, flatten
 from firms.sql_irsystems import SqlIRSystem
 
 print()
 print_timing("Loading pieces")
-piece_paths = corpus.getComposer('bach')
+piece_paths = flatten([
+    corpus.getComposer('bach', 'xml'),
+    corpus.getComposer('mozart', 'xml'),
+    corpus.getComposer('beethoven', 'xml'),
+    corpus.getComposer('schumann', 'xml')
+])
 
 index_methods = {
     'By Pitch': index_key_by_pitch,
