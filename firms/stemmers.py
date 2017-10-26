@@ -10,6 +10,7 @@ from operator import itemgetter
 from firms.models import flatten
 from music21.interval import Interval
 from music21.chord import Chord
+from music21.note import Note
 
 def window(seq, window_size=2):
     """
@@ -34,9 +35,9 @@ def split_voices(lead, current):
     num_lead = get_number_of_voices(lead)
     num_current = get_number_of_voices(current)
     if num_lead == num_current:
-        return current.pitches
+        return [ Note(pitch, quarterLength=current.duration.quarterLength) for pitch in current.pitches]
     middle = [sorted([ (c, abs(Interval(e,c).cents)) for c in current ], key=itemgetter(1))[0] for e in lead.pitches[1:-1]]
-    return list(chain(current.pitches[0:1], middle, current.pitches[-1:]))
+    return [ Note(pitch, quarterLength=current.duration.quarterLength) for pitch in chain(current.pitches[0:1], middle, current.pitches[-1:])]
 
 def split_voice_lines(indexed_notes):
     """
@@ -64,21 +65,21 @@ def split_voice_lines(indexed_notes):
         lead = tail[0][1]
         for i,n in tail[1:]:
             split_result = split_voices(lead, n)
-            fall.append(split_results)
+            fall.append( (i, split_result) )
             lead = n
 
     results = []
+
     for i in range(max_number_of_voices):
         results.append([])
-    
-    for i,voices in climb:
-        for j,voice in enumerate(voices):
-            results[j].append( (i,voice) )
-    for i,voices in fall:
-        for j,voice in enumerate(fall):
-            results[j].append( (i,voice) )
-    for result in results:
-        result.append(indexed_notes[peak])
+
+    source_idx_for_peak,peak_note = indexed_notes[peak]
+    for i,result in enumerate(results):
+        for j,voices in climb:
+            result.append( (j, voices[i]) )
+        for j,voices in fall:
+            result.append( (j, voices[i]) )
+        result.append( (source_idx_for_peak, Note(peak_note.pitches[i], quarterLength=peak_note.duration.quarterLength) ) )
 
     return results
     
@@ -110,6 +111,7 @@ def get_voice_lines(notes):
 
 def stringify_keys(key_list):
     return [ [str(item) for item in l] for l in key_list]
+
 def join_stem_by_note(note_stems):
     return [ ' '.join(stem) for stem in note_stems ]
 
