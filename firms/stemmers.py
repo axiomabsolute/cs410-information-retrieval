@@ -36,7 +36,9 @@ def split_voices(lead, current):
     num_current = get_number_of_voices(current)
     if num_lead == num_current:
         return [ Note(pitch, quarterLength=current.duration.quarterLength) for pitch in current.pitches]
-    middle = [sorted([ (c, abs(Interval(e,c).cents)) for c in current ], key=itemgetter(1))[0] for e in lead.pitches[1:-1]]
+    if current.isNote:
+        return [current]*num_lead
+    middle = map(itemgetter(0), [sorted([ (c, abs(Interval(e,c).cents)) for c in current.pitches ], key=itemgetter(1))[0] for e in lead.pitches[1:-1]])
     return [ Note(pitch, quarterLength=current.duration.quarterLength) for pitch in chain(current.pitches[0:1], middle, current.pitches[-1:])]
 
 def split_voice_lines(indexed_notes):
@@ -89,7 +91,7 @@ def get_voice_lines(notes):
     notes   stream of GeneralNote objects
     """
     # If everything is a rest, just wrap the line in a list and return as is
-    if all(note.isRest for note in notes):
+    if all(note.isRest or note.isNote for note in notes):
         return [notes]
     indexed_notes = list(enumerate(notes))
     indexed_non_rests = [(idx,note) for idx,note in indexed_notes if not note.isRest]
