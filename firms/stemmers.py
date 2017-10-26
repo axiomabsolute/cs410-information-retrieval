@@ -57,7 +57,7 @@ def split_voice_lines(indexed_notes):
         for i,n in head[1:]:
             split_result = split_voices(lead, n)
             climb.append( (i, split_result) )
-            lead = n
+            lead = Chord(split_result)
     
     tail = indexed_notes[peak:]
     fall = []
@@ -66,7 +66,7 @@ def split_voice_lines(indexed_notes):
         for i,n in tail[1:]:
             split_result = split_voices(lead, n)
             fall.append( (i, split_result) )
-            lead = n
+            lead = Chord(split_result)
 
     results = []
 
@@ -116,22 +116,24 @@ def join_stem_by_note(note_stems):
     return [ ' '.join(stem) for stem in note_stems ]
 
 def stem_by_pitch(snippet):
+    voices = get_voice_lines(snippet.notes)
     return [
         [note.pitch.nameWithOctave if note.isNote else
         "[ %s ]" % ' '.join([pitch.nameWithOctave for pitch in note.pitches])  if note.isChord else
         'rest'
-        for note in snippet.notes]
+        for note in voice] for voice in voices
     ]
 
 def index_key_by_pitch(snippet):
     return join_stem_by_note(stem_by_pitch(snippet))
 
 def stem_by_simple_pitch(snippet):
+    voices = get_voice_lines(snippet.notes)
     return [
         [note.pitch.name if note.isNote else
         "[ %s ]" % ' '.join([pitch.name for pitch in note.pitches]) if note.isChord else
         'rest'
-        for note in snippet.notes]
+        for note in voice]for voice in voices
     ]
 
 def index_key_by_simple_pitch(snippet):
