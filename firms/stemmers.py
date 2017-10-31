@@ -111,6 +111,27 @@ def get_voice_lines(notes):
 
     return voice_lines
 
+def get_contour(note1, note2):
+    if note1.isRest and note2.isRest:
+        return 's'
+    elif note1.isRest and not note2.isRest:
+        return 'u'
+    elif not note1.isRest and note2.isRest:
+        return 'd'
+    else:
+        interval = Interval(note1, note2)
+        cents = interval.cents
+        if cents == 0:
+            return 's'
+        if cents > 0:
+            return 'u'
+        return 'd'
+
+def get_interval(note1, note2):
+    if note1.isRest or note2.isRest:
+        return 'rest'
+    return str(Interval(note1, note2).cents)
+
 def stringify_keys(key_list):
     return [ [str(item) for item in l] for l in key_list]
 
@@ -140,6 +161,28 @@ def stem_by_simple_pitch(snippet):
 
 def index_key_by_simple_pitch(snippet):
     return join_stem_by_note(stem_by_simple_pitch(snippet))
+
+def stem_by_interval(snippet):
+    voices = get_voice_lines(snippet.notes)
+    return [
+        [
+            get_interval(*pair) for pair in window(voice)
+        ] for voice in voices
+    ]
+
+def index_key_by_interval(snippet):
+    return join_stem_by_note(stem_by_interval(snippet))
+
+def stem_by_contour(snippet):
+    voices = get_voice_lines(snippet.notes)
+    return [
+        [
+            get_contour(*pair) for pair in window(voice)
+        ] for voice in voices
+    ]
+
+def index_key_by_contour(snippet):
+    return join_stem_by_note(stem_by_contour(snippet))
 
 def stem_by_rythm(snippet):
     return [
