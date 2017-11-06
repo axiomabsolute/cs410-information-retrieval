@@ -134,10 +134,10 @@ class SqlIRSystem(IRSystem):
         cursor = conn.cursor()
         return super().lookup(snippet, conn, cursor)
 
-    def query(self, query):
-        conn = sqlite3.connect(self.dbpath) 
+    def raw_query(self, query, *args):
+        conn = sqlite3.connect(self.dbpath)
         cursor = conn.cursor()
-        return super().query(query, conn, cursor)
+        return super().raw_query(query, conn, cursor, *args)
 
 class SqlIndex(FirmIndex):
     def __init__(self, dbpath, snippets, keyfn, name, stemmer_id):

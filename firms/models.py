@@ -61,7 +61,7 @@ class IRSystem(metaclass=ABCMeta):
         snippets_by_index_type = {index_name: index.lookup(snippet, *args) for index_name,index in self.indexes.items()}
         return {scorer_name: scorer(snippets_by_index_type) for scorer_name,scorer in self.scorers.items()}
 
-    def query(self, query, *args):
+    def raw_query(self, query, *args):
         queryStream = None
         try:
             assert('Stream' in query.classSet or 'StreamIterator' in query.classSet)
@@ -77,6 +77,10 @@ class IRSystem(metaclass=ABCMeta):
                 lookup_results = index.lookup(snippet, *args)
                 for lookup_result in lookup_results:
                     snippets_by_index_type.append( GraderMatch(stemmer=index_name, snippet=lookup_result) )
+        return snippets_by_index_type
+
+    def query(self, query, *args):
+        snippets_by_index_type = self.raw_query(query, *args)
         scores_by_scorer = {scorer_name: scorer(snippets_by_index_type) for scorer_name,scorer in self.scorers.items()}
         return scores_by_scorer
 
