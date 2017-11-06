@@ -1,26 +1,23 @@
-# from music21 import corpus
-# from graders import simple_sum_grader
-# from stemmers import index_key_by_pitch
-# from models import MemoryIRSystem
-# import random
+"""
+A command line CLI for interacting with a FIRMs system.
 
-# pieces = list((corpus.parse(piece) for piece in corpus.getComposer('bach')[:10]))
+API:
 
-# index_methods = {
-#     'By Pitch': index_key_by_pitch
-# }
-
-# scorer_methods = {
-#     'Simple Sum': simple_sum_grader
-# }
-
-# irsystem = MemoryIRSystem(index_methods, scorer_methods, pieces)
-# all_snippets = get_snippets_for_pieces(pieces)
-# random_snippet = random.choice(all_snippets)
-# irsystem.lookup(random_snippet)
-
-# random_snippets = random.sample(all_snippets, 20)
-# scores = [irsystem.lookup(s) for s in random_snippets]
-# print(list(zip(random_snippets, scores)))
-
-# print("This is where the interactive CLI will live")
+connect [path] - connects to a SQLite FIRMs database at given path
+add stemmer [path] - adds the specified stemmer by attempting to re-fetch each piece and process with stemmer
+add piece [path] - adds the specified piece to the index
+    path may be a file path or composer name. File path must contain a \ or / character
+list [attribute] - list various attributes about indexed data
+    composers - piece information by composer
+    pieces - piece information
+    paths - paths originally used to build index
+    parts - parts information
+    stemmers - stemmers used
+    info - general info
+check [attribute] [value] - checks whether the given piece is in the index
+    name - the name of the piece
+    path - the original path to the piece
+    file - the filename for the piece
+query [tiny] - reads tiny notation and queries
+similar [path] - reads piece located at path and uses it as input to a query
+"""
