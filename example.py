@@ -2,7 +2,9 @@ import random
 from operator import attrgetter
 from tabulate import tabulate
 from music21 import corpus
-from firms.graders import count_grader, log_count_grader, weighted_sum_grader_factory, log_weighted_sum_grader_factory
+from scipy.optimize import minimize
+
+from firms.graders import count_grader, log_count_grader, weighted_sum_grader_factory, log_weighted_sum_grader_factory, stem_counter_by_piece, log_weighted_sum_grader_weightless_factory
 from firms.stemmers import index_key_by_pitch, index_key_by_simple_pitch, index_key_by_interval, index_key_by_contour, index_key_by_rythm, index_key_by_normalized_rythm
 from firms.models import MemoryIRSystem, print_timing, flatten
 from firms.sql_irsystems import SqlIRSystem
@@ -26,20 +28,24 @@ index_methods = {
 }
 
 weights = {'By Pitch': 2, 'By Simple Pitch': 1, 'By Interval': .2, 'By Contour': .1, 'By Rythm': .1, 'By Normal Rythm': .1}
+weights2 = {'By Pitch': 4.3, 'By Simple Pitch': 2.5, 'By Interval': 3.0, 'By Contour': -1.94, 'By Rythm': 1.36, 'By Normal Rythm': -2.85}
+weights3 = dict(zip(index_methods.keys(), [ 4.38148063, 4.38148063, 2.12716021, 0.46437347, 0.46437347, 0.46437347]))
 scorer_methods = {
-    'Count': count_grader,
-    'Log Count': log_count_grader,
-    'Linear': weighted_sum_grader_factory(weights),
-    'LogLinar': log_weighted_sum_grader_factory(weights)
+    # 'Count': count_grader,
+    # 'Log Count': log_count_grader,
+    # 'Linear': weighted_sum_grader_factory(weights),
+    'LogLinar': log_weighted_sum_grader_factory(weights),
+    'LogLinear2': log_weighted_sum_grader_factory(weights2),
+    'LogLinear3': log_weighted_sum_grader_factory(weights3)
 }
 
 print_timing("Building IR system")
 # irsystem = MemoryIRSystem(index_methods, scorer_methods, piece_paths)
 
-sqlsystem = SqlIRSystem('example.db.sqlite', index_methods, scorer_methods, piece_paths, True)
+sqlsystem = SqlIRSystem('example.db.sqlite', index_methods, scorer_methods, piece_paths, False)
 
 print_timing("Sampling ranges for demonstration")
-sample_paths = random.sample(piece_paths, min(10, len(piece_paths)))
+sample_paths = random.sample(piece_paths, min(20, len(piece_paths)))
 sample_pieces = (corpus.parse(piece) for piece in sample_paths)
 sample_streams = []
 sample_details = []
@@ -51,6 +57,9 @@ for piece in sample_pieces:
     sample_streams.append(part.measures(idx, idx+4).recurse().notesAndRests)
     sample_details.append((piece.metadata.title, part, idx))
 
+print("==========================================================================")
+print("Demo quries")
+print("==========================================================================")
 print_timing("Scoring samples")
 scores = []
 for detail,query in zip(sample_details, sample_streams):
@@ -77,5 +86,26 @@ for (detail, grader_results) in scores_with_details:
                 ])
 table_rows.sort(key=lambda x: (x[0], x[1], -1*x[5]))
 print(tabulate(table_rows, headers=table_headers))
+
+print("==========================================================================")
+print("Optimization")
+print("==========================================================================")
+
+print_timing("Building linear model")
+tp_names = list(map(lambda x: x[0], sample_details))
+matches = []
+for detail,query in zip(sample_details, sample_streams):
+    print_timing("Querying %s (%s)" % (detail[0], detail[1].partName), 1)
+    raw_results = list(sqlsystem.raw_query(query))
+    matches.append(stem_counter_by_piece(raw_results))
+to_optimize = log_weighted_sum_grader_weightless_factory(matches, tp_names, weights.keys())
+optimized = minimize(
+    to_optimize,
+    list(weights2.values()),
+    method='Powell'
+)
+print(optimized)
+
+print("==========================================================================")
 
 input("\nDone - press enter to exit.")
