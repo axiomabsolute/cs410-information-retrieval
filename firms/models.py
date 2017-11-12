@@ -5,7 +5,8 @@ import datetime
 
 import music21
 
-GraderMatch = namedtuple('GraderMatch', ['stemmer', 'snippet'])
+LookupMatch = namedtuple('LookupMatch', ['id', 'piece', 'part', 'offset', 'stem'])
+GraderMatch = namedtuple('GraderMatch', ['stemmer', 'lookup_match'])
 GraderResult = namedtuple('GraderResult', ['piece', 'grade', 'meta'])
 
 def print_timing(message, tabcount=0):
@@ -76,7 +77,7 @@ class IRSystem(metaclass=ABCMeta):
             for snippet in querySnippets:
                 lookup_results = index.lookup(snippet, *args)
                 for lookup_result in lookup_results:
-                    snippets_by_index_type.append( GraderMatch(stemmer=index_name, snippet=lookup_result) )
+                    snippets_by_index_type.append( GraderMatch(stemmer=index_name, lookup_match=lookup_result) )
         return snippets_by_index_type
 
     def query(self, query, *args):

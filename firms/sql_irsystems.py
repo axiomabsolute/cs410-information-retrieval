@@ -129,6 +129,14 @@ class SqlIRSystem(IRSystem):
         cursor.execute("SELECT id FROM snippets WHERE piece_id=? AND part_id=?", (piece_id, part_id))
         return [r[0] for r in cursor.fetchall()]
 
+    def get_number_of_pieces(self):
+        conn = sqlite3.connect(self.dbpath)
+        cursor = conn.cursor()
+        cursor.execute("""SELECT count(*) FROM pieces""")
+        result = cursor.fetchone()
+        conn.close()
+        return result[0]
+
     def lookup(self, snippet):
         conn = sqlite3.connect(self.dbpath) 
         cursor = conn.cursor()
@@ -190,10 +198,10 @@ class SqlIndex(FirmIndex):
     def lookup(self, snippet, conn, cursor):
         stems = self.keyfn(snippet)
         for stem in stems:
-            cursor.execute("""SELECT snippets.id, pieces.name, snippets.part_id as part, snippets.offset FROM snippets
+            cursor.execute("""SELECT snippets.id, pieces.name, snippets.part_id as part, snippets.offset, stems.id FROM snippets
                             JOIN entries ON entries.snippet_id=snippets.id
                             JOIN stems ON stems.id=entries.stem_id
                             JOIN pieces ON pieces.id=snippets.piece_id
                             WHERE stems.stem=?""", (stem, ))
         results = cursor.fetchall()
-        return [ {'id': r[0], 'piece': r[1], 'part': r[2], 'offset': r[3]} for r in results ]
+        return [ {'id': r[0], 'piece': r[1], 'part': r[2], 'offset': r[3], 'stem': r[4]} for r in results ]
