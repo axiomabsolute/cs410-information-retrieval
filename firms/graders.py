@@ -89,7 +89,7 @@ def count_grader(matches):
     return ( GraderResult(piece=k, grade=v, meta={}) for k,v in grades_by_piece.items())
 
 def aggregate_grader_by_stemmer(aggregator):
-    def aggregate_grader(matches):
+    def aggregate_grader(matches, corpus_size):
         result = defaultdict(lambda: 0)
         matches.sort(key=by_lookup_match_piece)
         for piece,piece_matches in groupby(matches, by_lookup_match_piece):
