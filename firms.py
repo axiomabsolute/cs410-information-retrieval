@@ -13,7 +13,6 @@ A command line CLI for interacting with a FIRMs system.
 API:
 
 create [path=./firms.sqlite.db] - creates a SQLite FIRMs database at given path
-connect [path=./firms.sqlite.db] - connects to a SQLite FIRMs database at given path
 add stemmer [path] - adds the specified stemmer by attempting to re-fetch each piece and process with stemmer
 add piece [path] - adds the specified piece to the index
     path may be a file path or composer name. File path must contain a \ or / character
@@ -32,8 +31,6 @@ query [tiny|path] - reads tiny notation or musicXML file at the given path and q
 similar [path] - reads piece located at path and uses it as input to a query
 """
 
-sqlsystem = None
-
 index_methods = {
     'By Pitch': index_key_by_pitch,
     'By Simple Pitch': index_key_by_simple_pitch,
@@ -43,13 +40,7 @@ index_methods = {
     'By Normal Rythm': index_key_by_normalized_rythm
 }
 
-weights = {'By Pitch': 2, 'By Simple Pitch': 1, 'By Interval': .2, 'By Contour': .1, 'By Rythm': .1, 'By Normal Rythm': .1}
-weights2 = {'By Pitch': 4.3, 'By Simple Pitch': 2.5, 'By Interval': 3.0, 'By Contour': -1.94, 'By Rythm': 1.36, 'By Normal Rythm': -2.85}
-weights3 = dict(zip(index_methods.keys(), [ 4.38148063, 4.38148063, 2.12716021, 0.46437347, 0.46437347, 0.46437347]))
 scorer_methods = {
-    # 'LogLinar': log_weighted_sum_grader_factory(weights),
-    # 'LogLinear2': log_weighted_sum_grader_factory(weights2),
-    # 'LogLinear3': log_weighted_sum_grader_factory(weights3),
     'BM25': bm25_factory()
 }
 
