@@ -62,6 +62,9 @@ class IRSystem(metaclass=ABCMeta):
         snippets_by_index_type = {index_name: index.lookup(snippet, *args) for index_name,index in self.indexes.items()}
         return {scorer_name: scorer(snippets_by_index_type) for scorer_name,scorer in self.scorers.items()}
 
+    @abstractmethod
+    def corpus_size(self): pass
+
     def raw_query(self, query, *args):
         queryStream = None
         try:
@@ -81,14 +84,18 @@ class IRSystem(metaclass=ABCMeta):
         return snippets_by_index_type
 
     def query(self, query, *args):
+        corpus_size = self.corpus_size()
         snippets_by_index_type = self.raw_query(query, *args)
-        scores_by_scorer = {scorer_name: scorer(snippets_by_index_type) for scorer_name,scorer in self.scorers.items()}
+        scores_by_scorer = {scorer_name: scorer(snippets_by_index_type, corpus_size) for scorer_name,scorer in self.scorers.items()}
         return scores_by_scorer
 
 class MemoryIRSystem(IRSystem):
     def __init__(self, index_methods, scorers = None, piece_paths = []):
         self.piece_names = {}
         super().__init__(index_methods, scorers, piece_paths)
+
+    def corpus_size(self):
+        return len(self.piece_names())
 
     def makeEmptyIndex(self, indexfn, name):
         return MemoryIndex([], indexfn, name)
