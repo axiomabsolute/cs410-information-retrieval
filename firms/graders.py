@@ -112,8 +112,8 @@ def bm25_idf(N, df):
 def bm25_tf(tf, k=1.2):
     return (tf * (k + 1) )/(tf + k)
 
-def bm25_factory(number_of_pieces):
-    def bm25(matches):
+def bm25_factory():
+    def bm25(matches, number_of_pieces):
         # Given a list of (stemmer, snippet) pairs
         # Compute DF - Dictionary from stem -> piece count
         dfs = {}

@@ -147,6 +147,13 @@ class SqlIRSystem(IRSystem):
         cursor = conn.cursor()
         return super().raw_query(query, conn, cursor, *args)
 
+    def corpus_size(self):
+        conn = sqlite3.connect(self.dbpath)
+        cursor = conn.cursor()
+        cursor.execute("SELECT count(*) FROM pieces")
+        result = cursor.fetchone()
+        return result[0]
+
 class SqlIndex(FirmIndex):
     def __init__(self, dbpath, snippets, keyfn, name, stemmer_id):
         self.dbpath = dbpath
