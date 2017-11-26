@@ -154,6 +154,32 @@ class SqlIRSystem(IRSystem):
         result = cursor.fetchone()
         return result[0]
 
+    def pieces(self):
+        conn = sqlite3.connect(self.dbpath)
+        cursor = conn.cursor()
+        cursor.execute("SELECT name, path FROM pieces")
+        return cursor.fetchall()
+
+    def stemmers(self):
+        conn = sqlite3.connect(self.dbpath)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM stemmers")
+        return cursor.fetchall()
+
+    def graders(self):
+        return self.scorers.keys()
+
+    def info(self):
+        tables = ["entries", "pieces", "parts", "snippets", "stems"]
+        results = {}
+        conn = sqlite3.connect(self.dbpath)
+        cursor = conn.cursor()
+        for table in tables:
+            cursor.execute("SELECT count(*) FROM %s" % table)
+            results[table] = cursor.fetchone()[0]
+        return results
+
+
 class SqlIndex(FirmIndex):
     def __init__(self, dbpath, snippets, keyfn, name, stemmer_id):
         self.dbpath = dbpath
