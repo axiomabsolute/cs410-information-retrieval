@@ -4,7 +4,9 @@ from music21 import converter, corpus
 from tabulate import tabulate
 
 from firms.sql_irsystems import SqlIRSystem
-from firms.graders import count_grader, log_count_grader, weighted_sum_grader_factory, log_weighted_sum_grader_factory, stem_counter_by_piece, log_weighted_sum_grader_weightless_factory, bm25_factory
+from firms.graders import count_grader, log_count_grader, weighted_sum_grader_factory,\
+    log_weighted_sum_grader_factory, stem_counter_by_piece,\
+    log_weighted_sum_grader_weightless_factory, bm25_factory
 from firms.stemmers import index_key_by_pitch, index_key_by_simple_pitch, index_key_by_interval, index_key_by_contour, index_key_by_rythm, index_key_by_normalized_rythm
 
 """
