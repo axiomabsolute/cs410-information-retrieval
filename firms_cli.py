@@ -1,24 +1,16 @@
-r"""
-A command line CLI for interacting with a FIRMs system.
+"""Fuzzy Information Retrieval for Music
 
-API:
+Usage:
+  firms_cli.py create [dbpath]
+  firms_cli.py add <path> [dbpath]
+  firms_cli.py query <tinyquery> [dbpath]
+  naval_fate.py (-h | --help)
+  naval_fate.py --version
 
-create [path=./firms.sqlite.db] - creates a SQLite FIRMs database at given path
-add piece [path] - adds the specified piece to the index
-    path may be a file path or composer name. File path must contain a \ or / character
-list [attribute] - list various attributes about indexed data
-    composers - piece information by composer
-    pieces - piece information
-    paths - paths originally used to build index
-    parts - parts information
-    stemmers - stemmers used
-    info - general info
-check [attribute] [value] - checks whether the given piece is in the index
-    name - the name of the piece
-    path - the original path to the piece
-    file - the filename for the piece
-query [tiny|path] - reads tiny notation or musicXML file at the given path and queries the database
-similar [path] - reads piece located at path and uses it as input to a query
+Options:
+  -h --help     Show this screen.
+  --version     Show version.
+  --dbpath      Path to FIRMs SQLite db
 """
 
 from operator import attrgetter
@@ -79,5 +71,15 @@ def print_results(grader_results):
                 ])
     print(tabulate(table_rows, headers=table_headers))
 
+def dispatch(method, args):
+    if method == 'create':
+        pass
+    elif method == 'add':
+        pass
+    elif method == 'query':
+        pass
+    else:
+        print("Unknown command `%s`" % method)
+
 if __name__ == "__main__":
-    print_results(query_tiny("tinyNotation: 3/4 E4 r f# g=lastG trip{b-8 a g} c4~ c", "example.db.sqlite"))
+    # print_results(query_tiny("tinyNotation: 3/4 E4 r f# g=lastG trip{b-8 a g} c4~ c", "example.db.sqlite"))
