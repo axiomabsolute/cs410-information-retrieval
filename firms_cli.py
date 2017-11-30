@@ -17,6 +17,7 @@ from operator import attrgetter
 
 from music21 import converter, corpus
 from tabulate import tabulate
+import click
 
 from firms.sql_irsystems import SqlIRSystem
 from firms.graders import bm25_factory
@@ -38,23 +39,38 @@ scorer_methods = {
 
 DEFAULT_DB_PATH = "firms.sqlite.db"
 
-def create(path=DEFAULT_DB_PATH):
+@click.command()
+@click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file")
+def create(path):
+    """Create or overwrite a existing FIRMs index"""
     SqlIRSystem(path, index_methods, scorer_methods, [], True)
 
 def connect(path):
     return SqlIRSystem(path, index_methods, scorer_methods, [], False)
 
+@click.command("add")
+@click.option('--piece', help="Path to MusicXML file")
+@click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file")
 def add_piece(piece_path, db_path=DEFAULT_DB_PATH):
+    """Add musicXML piece to firms index"""
     sqlIrSystem = connect(db_path)
     piece = corpus.parse(piece_path)
     sqlIrSystem.add_piece(piece, piece_path)
 
-def query_tiny(tinyquery, db_path=DEFAULT_DB_PATH):
-    sqlIrSystem = connect(db_path)
-    stream = converter.parse(tinyquery)
+@click.command("tiny")
+@click.option('--query', help="Snippet of target piece, in TinyNotation")
+@click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file")
+def query_tiny(query, path=DEFAULT_DB_PATH):
+    """
+        Query for piece using tiny notation
+
+        Examples firms_cli.py tiny --query "tinyNotation: 3/4 E4 r f# g=lastG trip{b-8 a g} c4~ c" --path "example.db.sqlite" 
+    """
+    sqlIrSystem = connect(path)
+    stream = converter.parse(query)
     notes = stream.recurse().notesAndRests
     results = sqlIrSystem.query(notes)
-    return results
+    return print_results(results)
 
 def print_results(grader_results):
     table_rows = []
@@ -71,15 +87,13 @@ def print_results(grader_results):
                 ])
     print(tabulate(table_rows, headers=table_headers))
 
-def dispatch(method, args):
-    if method == 'create':
-        pass
-    elif method == 'add':
-        pass
-    elif method == 'query':
-        pass
-    else:
-        print("Unknown command `%s`" % method)
+@click.group()
+def cli():
+    pass
+
+cli.add_command(create)
+cli.add_command(add_piece)
+cli.add_command(query_tiny)
 
 if __name__ == "__main__":
-    # print_results(query_tiny("tinyNotation: 3/4 E4 r f# g=lastG trip{b-8 a g} c4~ c", "example.db.sqlite"))
+    cli()
