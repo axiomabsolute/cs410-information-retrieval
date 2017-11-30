@@ -1,21 +1,9 @@
-from operator import attrgetter
-
-from music21 import converter, corpus
-from tabulate import tabulate
-
-from firms.sql_irsystems import SqlIRSystem
-from firms.graders import count_grader, log_count_grader, weighted_sum_grader_factory,\
-    log_weighted_sum_grader_factory, stem_counter_by_piece,\
-    log_weighted_sum_grader_weightless_factory, bm25_factory
-from firms.stemmers import index_key_by_pitch, index_key_by_simple_pitch, index_key_by_interval, index_key_by_contour, index_key_by_rythm, index_key_by_normalized_rythm
-
-"""
+r"""
 A command line CLI for interacting with a FIRMs system.
 
 API:
 
 create [path=./firms.sqlite.db] - creates a SQLite FIRMs database at given path
-add stemmer [path] - adds the specified stemmer by attempting to re-fetch each piece and process with stemmer
 add piece [path] - adds the specified piece to the index
     path may be a file path or composer name. File path must contain a \ or / character
 list [attribute] - list various attributes about indexed data
@@ -32,6 +20,16 @@ check [attribute] [value] - checks whether the given piece is in the index
 query [tiny|path] - reads tiny notation or musicXML file at the given path and queries the database
 similar [path] - reads piece located at path and uses it as input to a query
 """
+
+from operator import attrgetter
+
+from music21 import converter, corpus
+from tabulate import tabulate
+
+from firms.sql_irsystems import SqlIRSystem
+from firms.graders import bm25_factory
+from firms.stemmers import index_key_by_pitch, index_key_by_simple_pitch, index_key_by_interval,\
+    index_key_by_contour, index_key_by_rythm, index_key_by_normalized_rythm
 
 index_methods = {
     'By Pitch': index_key_by_pitch,

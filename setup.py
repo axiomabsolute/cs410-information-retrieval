@@ -10,5 +10,5 @@ setup(name='firms',
     packages=['firms'],
     install_requirements=[
         'music21',
-        'tabulate',
+        'tabulate'
     ])
