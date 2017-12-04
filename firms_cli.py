@@ -71,13 +71,13 @@ def add():
     pass
 
 @click.command("piece")
-@click.option('--piece', help="Path to MusicXML file")
+@click.option('--piecepath', help="Path to MusicXML file")
 @click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
-def add_piece(piece_path, path):
+def add_piece(piecepath, path):
     """Add musicXML piece to firms index"""
     sqlIrSystem = connect(path)
-    piece = corpus.parse(piece_path)
-    sqlIrSystem.add_piece(piece, piece_path)
+    piece = corpus.parse(piecepath)
+    sqlIrSystem.add_piece(piece, piecepath)
 
 @click.command("composer")
 @click.option('--composer', help="Composer's name to add")
