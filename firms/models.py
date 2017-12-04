@@ -19,13 +19,14 @@ def flatten(toflatten):
     """
     return [item for sublist in toflatten for item in sublist]
 
-def get_part_details(piece):
+def get_part_details(score):
     """
     Gets a tuple of title, partName, and part for each part in a list of pieces
     """
-    piece_title = piece.metadata.title
-    for idx,part in enumerate(piece.recurse().parts):
-        yield Part(piece_title, part.partName or "Part %s" % idx, part)
+    for piece in score.getElementsByClass(music21.stream.Score):
+        piece_title = (piece and piece.metadata and piece.metadata.title) or "Untitled"
+        for idx,part in enumerate(piece.recurse().parts):
+            yield Part(piece_title, part.partName or "Part %s" % idx, part)
 
 def get_notes_and_rests(part):
     """
