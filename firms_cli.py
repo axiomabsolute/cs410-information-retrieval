@@ -1,17 +1,4 @@
-"""Fuzzy Information Retrieval for Music
-
-Usage:
-  firms_cli.py create [dbpath]
-  firms_cli.py add <path> [dbpath]
-  firms_cli.py query <tinyquery> [dbpath]
-  naval_fate.py (-h | --help)
-  naval_fate.py --version
-
-Options:
-  -h --help     Show this screen.
-  --version     Show version.
-  --dbpath      Path to FIRMs SQLite db
-"""
+"""Fuzzy Information Retrieval for Music Scores"""
 
 from operator import attrgetter
 
@@ -38,10 +25,40 @@ scorer_methods = {
     'BM25': bm25_factory()
 }
 
+composers_list = [
+    "airdsAirs",
+    "bach",
+    "beethoven",
+    "chopin",
+    "ciconia",
+    "corelli",
+    "cpebach",
+    "demos",
+    "essenFolksong",
+    "handel",
+    "haydn",
+    "josquin",
+    "leadSheet",
+    "luca",
+    "miscFolk",
+    "monteverdi",
+    "mozart",
+    "oneills1850",
+    "palestrina",
+    "ryansMammoth",
+    "schoenberg",
+    "schumann",
+    "schumann_clara",
+    "theoryExercises",
+    "trecento",
+    "verdi",
+    "weber"
+]
+
 DEFAULT_DB_PATH = "firms.sqlite.db"
 
 @click.command()
-@click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file")
+@click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
 def create(path):
     """Create or overwrite a existing FIRMs index"""
     SqlIRSystem(path, index_methods, scorer_methods, [], True)
@@ -49,18 +66,39 @@ def create(path):
 def connect(path):
     return SqlIRSystem(path, index_methods, scorer_methods, [], False)
 
-@click.command("add")
+@click.group()
+def add():
+    pass
+
+@click.command("piece")
 @click.option('--piece', help="Path to MusicXML file")
-@click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file")
-def add_piece(piece_path, db_path):
+@click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
+def add_piece(piece_path, path):
     """Add musicXML piece to firms index"""
-    sqlIrSystem = connect(db_path)
+    sqlIrSystem = connect(path)
     piece = corpus.parse(piece_path)
     sqlIrSystem.add_piece(piece, piece_path)
 
+@click.command("composer")
+@click.option('--composer', help="Composer's name to add")
+@click.option('--filetype', help="Filters list of pieces by file type")
+@click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
+def add_composer(composer, filetype, path):
+    """
+        Add all pieces by composer to firms index.
+        Use `firms_cli.py composers` to see a list of composers.
+    """
+    sqlIRSystem = connect(path)
+    paths = corpus.getComposer(composer, filetype)
+    if len(paths) == 0:
+        print("Error: no pieces found matching composer %s" % composer)
+    for path in paths:
+        piece = corpus.parse(path)
+        sqlIRSystem.add_piece(piece, path)
+
 @click.command("tiny")
 @click.option('--query', help="Snippet of target piece, in TinyNotation")
-@click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file")
+@click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
 def query_tiny(query, path):
     """
         Query for piece using tiny notation
@@ -73,6 +111,16 @@ def query_tiny(query, path):
     results = sqlIrSystem.query(notes)
     return print_results(results)
 
+@click.command("composers")
+def show_composers():
+    """
+        Show a list of composers currently available in the music21 corpus.
+    """
+    print("Composers:")
+    for c in composers_list:
+        print("\t%s" % c)
+
+
 @click.group()
 def info():
     """
@@ -81,7 +129,7 @@ def info():
     pass
 
 @click.command("general")
-@click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file")
+@click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
 def info_general(path):
     """Show general aggregate information"""
     sqlIrSystem = connect(path)
@@ -92,7 +140,7 @@ def info_general(path):
         print("%s: %s" % (k.rjust(max_key_len + 2), format(v, "%s,d" % (max_value_len + 2))))
 
 @click.command("pieces")
-@click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file")
+@click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
 @click.option('--name', default="", help="Case-insensitive plain text filter to match against name")
 @click.option('--fname', default="", help="Case-insensitive plain text filter to match against file path")
 def info_pieces(path, name, fname):
@@ -126,10 +174,15 @@ def cli():
 info.add_command(info_pieces)
 info.add_command(info_general)
 
+add.add_command(add_piece)
+add.add_command(add_composer)
+
 cli.add_command(create)
 cli.add_command(add_piece)
 cli.add_command(query_tiny)
+cli.add_command(show_composers)
 cli.add_command(info)
+cli.add_command(add)
 
 if __name__ == "__main__":
     cli()
