@@ -34,10 +34,12 @@ def get_number_of_voices(gnote):
 def split_voices(lead, current):
     num_lead = get_number_of_voices(lead)
     num_current = get_number_of_voices(current)
+    if current.isNote:
+        return [ Note(current.pitch, quarterLength=current.duration.quarterLength) for i in range(num_lead) ]
     if num_lead == num_current:
         return [ Note(pitch, quarterLength=current.duration.quarterLength) for pitch in current.pitches]
-    if current.isNote:
-        return [current]*num_lead
+    if current.isChord and len(current.pitches) == 0:
+        raise RuntimeError("The system was able to parse the file, but detected an illegal construct: empty chord")
     middle = map(itemgetter(0), [sorted([ (c, abs(Interval(e,c).cents)) for c in current.pitches ], key=itemgetter(1))[0] for e in lead.pitches[1:-1]])
     return [ Note(pitch, quarterLength=current.duration.quarterLength) for pitch in chain(current.pitches[0:1], middle, current.pitches[-1:])]
 
