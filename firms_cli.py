@@ -76,7 +76,7 @@ def add():
 def add_piece(piecepath, path):
     """Add musicXML piece to firms index"""
     sqlIrSystem = connect(path)
-    piece = corpus.parse(piecepath)
+    piece = converter.parse(piecepath)
     sqlIrSystem.add_piece(piece, piecepath)
 
 @click.command("composer")
