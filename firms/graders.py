@@ -19,10 +19,12 @@ by_stemmer = attrgetter('stemmer')
 # Dictionaries use itemgetter
 by_offset = itemgetter('offset')
 by_part = itemgetter('part')
+by_path = itemgetter('path')
 by_piece = itemgetter('piece')
 by_stem = itemgetter('stem')
 by_lookup_match_offset = by(by_lookup_match, by_offset)
 by_lookup_match_part = by(by_lookup_match, by_part)
+by_lookup_match_path = by(by_lookup_match, by_path)
 by_lookup_match_piece = by(by_lookup_match, by_piece)
 by_lookup_match_stem = by(by_lookup_match, by_stem)
 
@@ -83,7 +85,7 @@ def log_weighted_count_sum_grader_factory(weights_by_stemmer):
 
 # A grader receives a list of GraderMatch tuples
 # and ultimately produces GraderResult tuples
-def count_grader(matches):
+def count_grader(matches, num_pieces):
     matches.sort(key=by_lookup_match_piece)
     grades_by_piece = {k:len(list(g)) for k,g in groupby(matches, by_lookup_match_piece)}
     return ( GraderResult(piece=k, grade=v, meta={}) for k,v in grades_by_piece.items())
@@ -126,6 +128,5 @@ def bm25_factory():
             for stem, stem_matches in groupby(sorted(piece_matches, key=by_lookup_match_stem), by_lookup_match_stem):
                 tfs[piece][stem] = len(list(stem_matches))
         # Compute TF-IDF score
-        # return [ GraderResult(piece=piece, grade=sum([ cnt * log(number_of_pieces + 1 / (dfs[stem])) for stem,cnt in piece_tfs.items() ]), meta={}) for piece, piece_tfs in tfs.items()]
         return [ GraderResult(piece=piece, grade=sum([bm25_tf(cnt) * bm25_idf(number_of_pieces, dfs[stem]) for stem,cnt in piece_tfs.items() ]), meta={}) for piece, piece_tfs in tfs.items()]
     return bm25
