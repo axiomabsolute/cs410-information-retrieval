@@ -1,6 +1,7 @@
 """Fuzzy Information Retrieval for Music Scores"""
 
 from operator import attrgetter
+import random
 
 from music21 import converter, corpus
 from tabulate import tabulate
@@ -136,7 +137,6 @@ def query_piece(file, path):
     results = sqlIrSystem.query(stream)
     return print_results(results)
 
-
 @click.group()
 def query():
     """
@@ -184,6 +184,47 @@ def info_pieces(path, name, fname):
                     sqlIrSystem.pieces()))
     print(list(result))
 
+@click.command("evaluate")
+@click.option('--n', default=2, help="Number of pieces to sample")
+@click.option('--erate', default=0, help="Rate at which to simulate error")
+@click.option('--minsize', default=3, help="Minimum sample size (in measures)")
+@click.option('--maxsize', default=7, help="Maximum sample size (in measures)")
+@click.option('--note_error', default=0.0, help="Error by replacing a random note in the snippet with a random note value")
+@click.option('--transposition_error', default=0.0, help="Error by transposing the key of the snippet")
+@click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
+def evaluate(n, erate, minsize, maxsize, note_error, transposition_error, path):
+    """
+    Select random samples from the music21 corpus and run IR evaluation.
+
+    Select n random samples of length [minsize, maxsize] measures
+    With probability erate, introduce errors to the sampled snippets
+        Select error using relative weights of each  of the --*error parameters
+    """
+    print("Running evaluation with %s samples" % n)
+    sqlIrSystem = connect(path)
+    paths = corpus.getPaths()
+    print("Selecing sample pieces")
+    sample_paths = random.sample(paths, n)
+    details = []
+    query_results = []
+    for idx,sample_path in enumerate(sample_paths):
+        print("Sample %s: %s" % (idx + 1, sample_path))
+        piece = corpus.parse(sample_path)
+        part = random.choice(list(piece.recurse().parts))
+        num_of_measures = len(part.measures(0,None))
+        sample_size = random.randint(minsize, maxsize)
+        idx = random.randint(0, num_of_measures-sample_size)
+        sample_stream = part.measures(idx, idx+sample_size).recurse().notesAndRests
+        sample_detail = (piece.metadata.title, part, idx, sample_path)
+        query_result = sqlIrSystem.query(sample_stream)
+        query_results.append(query_result)
+        details.append(sample_detail)
+    evaluations = print_evaluations(details, query_results)
+    print("Computing evaluation metrics")
+    # Filter by [3] (is actual)
+    # Aggregate by [1] (grading method)
+    # Compute statistics on [5] (rank) and [6] (grade)
+
 def print_results(grader_results):
     table_rows = []
     table_headers = ['Grading Method', 'Piece', 'Rank', 'Grade']
@@ -199,10 +240,34 @@ def print_results(grader_results):
                 ])
     print(tabulate(table_rows, headers=table_headers))
 
+def print_evaluations(sample_details, query_results):
+    table_rows = []
+    table_headers = ['Query Source', 'Grading Method', 'Piece', 'Is Actual', 'Rank', 'Grade']
+    for (detail, grader_results) in zip(sample_details, query_results):
+        for grader,results in grader_results.items():
+            results_ordered_by_grade = sorted(results, key=attrgetter('grade'), reverse=True)
+            for result_number,(piece, grade, meta) in enumerate(results_ordered_by_grade):
+                is_actual = detail[3] == piece
+                if result_number < 5 or is_actual:
+                    piece_split = piece.split('site-packages')
+                    truncated_piece = '..%s' % piece_split[-1] if len(piece_split) > 1 else piece
+                    table_rows.append([
+                        "%s %s (m %s)" % (detail[0], detail[1].partName, detail[2]),
+                        grader,
+                        truncated_piece,
+                        is_actual,
+                        result_number,
+                        grade
+                    ])
+    table_rows.sort(key=lambda x: (x[0], x[1], -1*x[5]))
+    print(tabulate(table_rows, headers=table_headers))
+    return table_rows
+
 @click.group()
 def cli():
     pass
 
+# Build command groups
 info.add_command(info_pieces)
 info.add_command(info_general)
 
@@ -213,12 +278,15 @@ add.add_command(add_music21)
 query.add_command(query_tiny)
 query.add_command(query_piece)
 
-cli.add_command(create)
-cli.add_command(add_piece)
-cli.add_command(show_composers)
+# Add groups to root
 cli.add_command(info)
 cli.add_command(add)
 cli.add_command(query)
+
+# Add orphan commands
+cli.add_command(create)
+cli.add_command(show_composers)
+cli.add_command(evaluate)
 
 if __name__ == "__main__":
     cli()
