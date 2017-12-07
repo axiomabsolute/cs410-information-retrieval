@@ -2,6 +2,8 @@
 
 from operator import attrgetter
 import random
+from itertools import groupby
+from scipy import stats
 
 from music21 import converter, corpus
 from tabulate import tabulate
@@ -202,7 +204,7 @@ def evaluate(n, erate, minsize, maxsize, note_error, transposition_error, path):
     """
     print("Running evaluation with %s samples" % n)
     sqlIrSystem = connect(path)
-    paths = corpus.getPaths()
+    paths = corpus.getPaths(fileExtensions=['xml'])
     print("Selecing sample pieces")
     sample_paths = random.sample(paths, n)
     details = []
@@ -216,14 +218,19 @@ def evaluate(n, erate, minsize, maxsize, note_error, transposition_error, path):
         idx = random.randint(0, num_of_measures-sample_size)
         sample_stream = part.measures(idx, idx+sample_size).recurse().notesAndRests
         sample_detail = (piece.metadata.title, part, idx, sample_path)
+        print("\tQuerying..")
         query_result = sqlIrSystem.query(sample_stream)
         query_results.append(query_result)
         details.append(sample_detail)
     evaluations = print_evaluations(details, query_results)
     print("Computing evaluation metrics")
     # Filter by [3] (is actual)
+    tp_evaluations = [x for x in evaluations if x[3]]
     # Aggregate by [1] (grading method)
+    tps_by_method = groupby(sorted(tp_evaluations, key=lambda x: x[1]), lambda x: x[1])
     # Compute statistics on [5] (rank) and [6] (grade)
+    aggregate_results = {method: stats.describe([tp[4] for tp in tps]) for method,tps in tps_by_method}
+    print(aggregate_results)
 
 def print_results(grader_results):
     table_rows = []

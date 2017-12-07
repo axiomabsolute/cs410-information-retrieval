@@ -11,5 +11,6 @@ setup(name='firms',
     install_requirements=[
         'music21',
         'tabulate',
-        'click'
+        'click',
+        'scipy'
     ])
