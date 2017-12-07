@@ -7,7 +7,7 @@ from tabulate import tabulate
 import click
 
 from firms.sql_irsystems import SqlIRSystem
-from firms.graders import bm25_factory
+from firms.graders import bm25_factory, log_weighted_sum_grader_factory
 from firms.stemmers import index_key_by_pitch, index_key_by_simple_pitch, index_key_by_interval,\
     index_key_by_contour, index_key_by_rythm, index_key_by_normalized_rythm
 
@@ -21,7 +21,9 @@ index_methods = {
     'By Normal Rythm': index_key_by_normalized_rythm
 }
 
+weights2 = {'By Pitch': 4.3, 'By Simple Pitch': 2.5, 'By Interval': 3.0, 'By Contour': -1.94, 'By Rythm': 1.36, 'By Normal Rythm': -2.85}
 scorer_methods = {
+    'LogLinear2': log_weighted_sum_grader_factory(weights2),
     'BM25': bm25_factory()
 }
 
@@ -96,6 +98,20 @@ def add_composer(composer, filetype, path):
         piece = corpus.parse(path)
         sqlIRSystem.add_piece(piece, path)
 
+@click.command('music21')
+@click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
+def add_music21(path):
+    sqlIRSystem = connect(path)
+    paths = corpus.getPaths()
+    num_pieces = len(paths)
+    for idx,path in enumerate(paths):
+        print("Adding piece %s of %s" % (idx, num_pieces))
+        try:
+            piece = corpus.parse(path)
+            sqlIRSystem.add_piece(piece, path)
+        except:
+            print("\tUnable to process piece %s" % path)
+
 @click.command("tiny")
 @click.option('--query', help="Snippet of target piece, in TinyNotation")
 @click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
@@ -111,6 +127,23 @@ def query_tiny(query, path):
     results = sqlIrSystem.query(notes)
     return print_results(results)
 
+@click.command("piece")
+@click.option('--file', help="Path to Music XML (or MXL) file containing query")
+@click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
+def query_piece(file, path):
+    sqlIrSystem = connect(path)
+    stream = converter.parse(file)
+    results = sqlIrSystem.query(stream)
+    return print_results(results)
+
+
+@click.group()
+def query():
+    """
+    Query for a piece using tiny notation or by providing an exemplar Music XML file
+    """
+    pass
+
 @click.command("composers")
 def show_composers():
     """
@@ -119,7 +152,6 @@ def show_composers():
     print("Composers:")
     for c in composers_list:
         print("\t%s" % c)
-
 
 @click.group()
 def info():
@@ -158,7 +190,7 @@ def print_results(grader_results):
     for grader,results in grader_results.items():
         results_ordered_by_grade = sorted(results, key=attrgetter('grade'), reverse=True)
         for result_number,(piece, grade, meta) in enumerate(results_ordered_by_grade):
-            if result_number < 5:
+            if result_number < 10:
                 table_rows.append([
                     grader,
                     piece,
@@ -176,13 +208,17 @@ info.add_command(info_general)
 
 add.add_command(add_piece)
 add.add_command(add_composer)
+add.add_command(add_music21)
+
+query.add_command(query_tiny)
+query.add_command(query_piece)
 
 cli.add_command(create)
 cli.add_command(add_piece)
-cli.add_command(query_tiny)
 cli.add_command(show_composers)
 cli.add_command(info)
 cli.add_command(add)
+cli.add_command(query)
 
 if __name__ == "__main__":
     cli()
