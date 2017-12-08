@@ -24,9 +24,7 @@ index_methods = {
     'By Normal Rythm': index_key_by_normalized_rythm
 }
 
-weights2 = {'By Pitch': 4.3, 'By Simple Pitch': 2.5, 'By Interval': 3.0, 'By Contour': -1.94, 'By Rythm': 1.36, 'By Normal Rythm': -2.85}
 scorer_methods = {
-    'LogLinear2': log_weighted_sum_grader_factory(weights2),
     'BM25': bm25_factory()
 }
 

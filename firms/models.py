@@ -90,28 +90,6 @@ class IRSystem(metaclass=ABCMeta):
         scores_by_scorer = {scorer_name: scorer(snippets_by_index_type, corpus_size) for scorer_name,scorer in self.scorers.items()}
         return scores_by_scorer
 
-class MemoryIRSystem(IRSystem):
-    def __init__(self, index_methods, scorers = None, piece_paths = []):
-        self.piece_names = {}
-        super().__init__(index_methods, scorers, piece_paths)
-
-    def corpus_size(self):
-        return len(self.piece_names())
-
-    def makeEmptyIndex(self, indexfn, name):
-        return MemoryIndex([], indexfn, name)
-    
-    def add_piece(self, piece, piece_path):
-        for part in get_part_details(piece):
-            self.piece_names[part.piece] = piece_path
-            snippets = get_snippets_for_part(part)
-            for idx in self.indexes.values():
-                for snippet in snippets:
-                    idx.add_snippet(snippet)
-    
-    def __repr__(self):
-        return "IRSystem(%s pieces)" % (len(self.piece_names))
-                        
 class Snippet:
     def __init__(self, piece_name, part, notes, offset):
         self.piece = piece_name
@@ -151,31 +129,3 @@ class FirmIndex(metaclass=ABCMeta):
     @abstractmethod
     def lookup(self, snippet, *args):
         pass
-
-class MemoryIndex(FirmIndex):
-    def __init__(self, snippets, keyfn, name = ""):
-        super().__init__(snippets, keyfn, name)
-            
-    def add_snippet(self, snippet):
-        for key in self.keyfn(snippet):
-            self.index[key].add(snippet)
-
-    def lookup(self, snippet):
-        return flatten([self.index[key] for key in self.keyfn(snippet)])
-    
-    def merge_indexes(self, index):
-        result = MemoryIndex([], self.keyfn, self.name)
-        for k,v in self.index.items():
-            for item in v:
-                result.index[k].add(item)
-        for k,v in index.index.items():
-            for item in v:
-                result.index[k].add(item)
-        return result
-    
-    def __repr__(self):
-        result = "Index[%s]\n" % self.name
-        for key, values in self.index.items():
-            result += "  %s - %s\n" % (key, len(values))
-        return result
-    
