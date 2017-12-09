@@ -4,14 +4,14 @@ from operator import attrgetter
 import random
 from itertools import groupby
 from scipy import stats
-import numpy as np
+import csv
 
 from music21 import converter, corpus
 from tabulate import tabulate
 import click
 
 from firms.sql_irsystems import SqlIRSystem
-from firms.graders import Bm25Grader, bm25_factory, log_weighted_sum_grader_factory
+from firms.graders import Bm25Grader, LogWeightedSumGrader
 from firms.stemmers import index_key_by_pitch, index_key_by_simple_pitch, index_key_by_interval,\
     index_key_by_contour, index_key_by_rythm, index_key_by_normalized_rythm
 
@@ -25,8 +25,10 @@ index_methods = {
     'By Normal Rythm': index_key_by_normalized_rythm
 }
 
-scorer_methods = {
-    'BM25': Bm25Grader()
+weights2 = {'By Pitch': 4.3, 'By Simple Pitch': 2.5, 'By Interval': 3.0, 'By Contour': -1.94, 'By Rythm': 1.36, 'By Normal Rythm': -2.85}
+grader_methods = {
+    'BM25': Bm25Grader(),
+    'LogWeightedSumGrader': LogWeightedSumGrader(weights2)
 }
 
 composers_list = [
@@ -65,10 +67,10 @@ DEFAULT_DB_PATH = "firms.sqlite.db"
 @click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
 def create(path):
     """Create or overwrite a existing FIRMs index"""
-    SqlIRSystem(path, index_methods, scorer_methods, [], True)
+    SqlIRSystem(path, index_methods, grader_methods, [], True)
 
 def connect(path):
-    return SqlIRSystem(path, index_methods, scorer_methods, [], False)
+    return SqlIRSystem(path, index_methods, grader_methods, [], False)
 
 @click.group()
 def add():
@@ -116,8 +118,9 @@ def add_music21(path):
 
 @click.command("tiny")
 @click.option('--query', help="Snippet of target piece, in TinyNotation")
+@click.option('--output', default=None, help="Path to write results out to")
 @click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
-def query_tiny(query, path):
+def query_tiny(query, output, path):
     """
         Query for piece using tiny notation
 
@@ -127,16 +130,27 @@ def query_tiny(query, path):
     stream = converter.parse(query)
     notes = stream.recurse().notesAndRests
     results = sqlIrSystem.query(notes)
-    return print_results(results)
+    formatted_results = print_results(results)
+    if output:
+        with open(output, 'w') as outf:
+            writer = csv.writer(outf, lineterminator="\n")
+            for row in formatted_results:
+                writer.writerow(row)
 
 @click.command("piece")
 @click.option('--file', help="Path to Music XML (or MXL) file containing query")
+@click.option('--output', default=None, help="Path to write results out to")
 @click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
-def query_piece(file, path):
+def query_piece(file, output, path):
     sqlIrSystem = connect(path)
     stream = converter.parse(file)
     results = sqlIrSystem.query(stream)
-    return print_results(results)
+    formatted_results = print_results(results)
+    if output:
+        with open(output, 'w') as outf:
+            writer = csv.writer(outf, lineterminator="\n")
+            for row in formatted_results:
+                writer.writerow(row)
 
 @click.group()
 def query():
@@ -192,8 +206,9 @@ def info_pieces(path, name, fname):
 @click.option('--maxsize', default=7, help="Maximum sample size (in measures)")
 @click.option('--note_error', default=0.0, help="Error by replacing a random note in the snippet with a random note value")
 @click.option('--transposition_error', default=0.0, help="Error by transposing the key of the snippet")
+@click.option('--output', default=None, help="Path to write results out to")
 @click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
-def evaluate(n, erate, minsize, maxsize, note_error, transposition_error, path):
+def evaluate(n, erate, minsize, maxsize, note_error, transposition_error, output, path):
     """
     Select random samples from the music21 corpus and run IR evaluation.
 
@@ -226,10 +241,18 @@ def evaluate(n, erate, minsize, maxsize, note_error, transposition_error, path):
     # Filter by [3] (is actual)
     tp_evaluations = [x for x in evaluations if x[3]]
     # Aggregate by [1] (grading method)
-    tps_by_method = groupby(sorted(tp_evaluations, key=lambda x: x[1]), lambda x: x[1])
+    tps_by_method = dict((k, list(g)) for k,g in groupby(sorted(tp_evaluations, key=lambda x: x[1]), lambda x: x[1]))
     # Compute statistics on [5] (rank) and [6] (grade)
-    aggregate_results = {method: stats.describe([tp[4] for tp in tps]) for method,tps in tps_by_method}
-    print(aggregate_results)
+    aggregate_rank_results = {method: stats.describe([tp[4] for tp in tps]) for method,tps in tps_by_method.items()}
+    for method, description in aggregate_rank_results.items():
+        print("Statistics for %s" % method)
+        for stat,val in zip(description._fields, description):
+            print("\t%s: %s" % (stat,val))
+    if output:
+        with open(output, 'w') as outf:
+            writer = csv.writer(outf, lineterminator="\n")
+            for row in evaluations:
+                writer.writerow(row)
 
 def print_results(grader_results):
     table_rows = []
@@ -245,10 +268,11 @@ def print_results(grader_results):
                     grade
                 ])
     print(tabulate(table_rows, headers=table_headers))
+    return table_rows
 
 def print_evaluations(sample_details, query_results):
     table_rows = []
-    table_headers = ['Query Source', 'Grading Method', 'Piece', 'Is Actual', 'Rank', 'Grade']
+    table_headers = ['Query Source', 'Grader', 'Piece', 'Actual', 'Rank', 'Grade']
     for (detail, grader_results) in zip(sample_details, query_results):
         for grader,results in grader_results.items():
             results_ordered_by_grade = sorted(results, key=attrgetter('grade'), reverse=True)
@@ -263,7 +287,7 @@ def print_evaluations(sample_details, query_results):
                         truncated_piece,
                         is_actual,
                         result_number,
-                        grade
+                        round(grade, 2)
                     ])
     table_rows.sort(key=lambda x: (x[0], x[1], -1*x[5]))
     print(tabulate(table_rows, headers=table_headers))

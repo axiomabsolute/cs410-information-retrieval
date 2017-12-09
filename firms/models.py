@@ -44,7 +44,7 @@ def get_snippets_for_part(part):
 class IRSystem(metaclass=ABCMeta):
     def __init__(self, index_methods, graders, piece_paths, rebuild=True):
         self.index_methods = index_methods
-        self.graders = graders
+        self.grader_methods = graders
         self.indexes = {k:self.makeEmptyIndex(v,k) for k,v in index_methods.items()}
         total_pieces = len(piece_paths)
         if rebuild:
@@ -61,13 +61,13 @@ class IRSystem(metaclass=ABCMeta):
 
     def lookup(self, snippet, *args):
         snippets_by_index_type = {index_name: index.lookup(snippet, *args) for index_name,index in self.indexes.items()}
-        return {scorer_name: scorer(snippets_by_index_type) for scorer_name,scorer in self.graders.items()}
+        return {scorer_name: scorer(snippets_by_index_type) for scorer_name,scorer in self.grader_methods.items()}
 
     @abstractmethod
     def corpus_size(self): pass
 
     def raw_query(self, query, *args):
-        for grader in self.graders.values():
+        for grader in self.grader_methods.values():
             grader.zero()
         queryStream = None
         try:
@@ -81,14 +81,14 @@ class IRSystem(metaclass=ABCMeta):
         for index_name,index in self.indexes.items():
             for snippet in querySnippets:
                 lookup_results = index.lookup(snippet, *args)
-                for grader in self.graders.values():
+                for grader in self.grader_methods.values():
                     grader.aggregate([ GraderMatch(stemmer=index_name, lookup_match=lookup_result) for lookup_result in lookup_results ])
 
     def query(self, query, *args):
         corpus_size = self.corpus_size()
         self.raw_query(query, *args)
-        # scores_by_scorer = {scorer_name: scorer(snippets_by_index_type, corpus_size) for scorer_name,scorer in self.graders.items()}
-        grades_by_grader = {grader_name: grader.grade(corpus_size) for grader_name, grader in self.graders.items()}
+        # scores_by_scorer = {scorer_name: scorer(snippets_by_index_type, corpus_size) for scorer_name,scorer in self.grader_methods.items()}
+        grades_by_grader = {grader_name: grader.grade(corpus_size) for grader_name, grader in self.grader_methods.items()}
         return grades_by_grader
 
 class Snippet:

@@ -167,7 +167,7 @@ class SqlIRSystem(IRSystem):
         return cursor.fetchall()
 
     def graders(self):
-        return self.graders.keys()
+        return self.grader_methods.keys()
 
     def info(self):
         tables = ["entries", "pieces", "parts", "snippets", "stems", "stemmers"]
@@ -178,7 +178,6 @@ class SqlIRSystem(IRSystem):
             cursor.execute("SELECT count(*) FROM %s" % table)
             results[table] = cursor.fetchone()[0]
         return results
-
 
 class SqlIndex(FirmIndex):
     def __init__(self, dbpath, snippets, keyfn, name, stemmer_id):
