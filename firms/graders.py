@@ -121,4 +121,6 @@ class LogWeightedSumGrader(Grader):
            if piece not in self.stemmer_counts_by_piece:
                self.stemmer_counts_by_piece[piece] = {}
            for stemmer, stemmer_matches in groupby(sorted(piece_matches, key=by_stemmer), by_stemmer):
-               self.stemmer_counts_by_piece[piece][stemmer] = len(list(stemmer_matches))
+               if stemmer not in self.stemmer_counts_by_piece[piece]:
+                   self.stemmer_counts_by_piece[piece][stemmer] = 0
+               self.stemmer_counts_by_piece[piece][stemmer] = self.stemmer_counts_by_piece[piece][stemmer] + len(list(stemmer_matches))
