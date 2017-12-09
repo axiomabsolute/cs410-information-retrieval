@@ -3,7 +3,7 @@ import sqlite3
 
 class SqlIRSystem(IRSystem):
 
-    def __init__(self, dbpath, index_methods, scorers = None, piece_paths = [], rebuild = True):
+    def __init__(self, dbpath, index_methods, graders = None, piece_paths = [], rebuild = True):
         # Ensure pieces, stemmers, snippets, parts, stems, and entries tables exist
         # Add each index method to stemmers table
         self.dbpath = dbpath
@@ -11,7 +11,7 @@ class SqlIRSystem(IRSystem):
         self.ensure_db(conn)
         self.stemmer_ids = self.ensure_stemmers(index_methods, conn)
         conn.close()
-        super().__init__(index_methods, scorers, piece_paths, rebuild)
+        super().__init__(index_methods, graders, piece_paths, rebuild)
 
     def makeEmptyIndex(self, indexfn, name):
         return SqlIndex(self.dbpath, [], indexfn, name, self.stemmer_ids[name])
@@ -167,7 +167,7 @@ class SqlIRSystem(IRSystem):
         return cursor.fetchall()
 
     def graders(self):
-        return self.scorers.keys()
+        return self.graders.keys()
 
     def info(self):
         tables = ["entries", "pieces", "parts", "snippets", "stems", "stemmers"]

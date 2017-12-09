@@ -1,6 +1,7 @@
 from collections import Counter, defaultdict
 from itertools import groupby
 from operator import attrgetter, itemgetter
+from abc import ABCMeta, abstractmethod
 from math import log
 from firms.models import flatten, GraderResult
 
@@ -130,3 +131,68 @@ def bm25_factory():
         # Compute TF-IDF score
         return [ GraderResult(piece=piece, grade=sum([bm25_tf(cnt) * bm25_idf(number_of_pieces, dfs[stem]) for stem,cnt in piece_tfs.items() ]), meta={}) for piece, piece_tfs in tfs.items()]
     return bm25
+
+class Grader(metaclass=ABCMeta):
+    def __init__(self):
+        self.zero()
+
+    @abstractmethod
+    def zero(self):
+        """
+        Reset the grader's aggregator
+        """
+        pass
+
+    @abstractmethod
+    def grade(self, number_of_pieces):
+        """
+        Compute a grade based on the grader's current aggregator state
+        """
+        pass
+
+    @abstractmethod
+    def aggregate(self, matches):
+        """
+        Add a set of results to the grader's aggregator
+        """
+        pass
+
+class Bm25Grader(Grader):
+    def zero(self):
+        self.tfs = {}
+        self.dfs = {}
+    
+    def grade(self, number_of_pieces):
+        tfs = self.tfs
+        dfs = self.dfs
+        return [ GraderResult(piece=piece, grade=sum([bm25_tf(cnt) * bm25_idf(number_of_pieces, dfs[stem]) for stem,cnt in piece_tfs.items() ]), meta={}) for piece, piece_tfs in tfs.items()]
+
+    def aggregate(self, matches):
+        # Compute DF - Dictionary from stem -> piece count
+        dfs = {}
+        for stem, stem_matches in groupby(sorted(matches, key=by_lookup_match_stem), by_lookup_match_stem):
+            dfs[stem] = len(set(map(by_lookup_match_piece, stem_matches)))
+
+        # For each piece compute TF scores - Dictionary from piece to Dictionary from stem to count
+        tfs = {}
+        for piece, piece_matches in groupby(sorted(matches, key=by_lookup_match_piece), by_lookup_match_piece):
+            tfs[piece] = {}
+            for stem, stem_matches in groupby(sorted(piece_matches, key=by_lookup_match_stem), by_lookup_match_stem):
+                tfs[piece][stem] = len(list(stem_matches))
+
+        self.dfs.update(dfs)
+        for piece, piece_stems in tfs.items():
+            if piece not in self.tfs:
+                self.tfs[piece] = {}
+            self.tfs[piece].update(piece_stems)
+
+class LogWeightedSumGrader(Grader):
+    def zero(self):
+        pass
+    
+    def grade(self, number_of_pieces):
+        pass
+
+    
+    def aggregate(self, matches):
+        pass

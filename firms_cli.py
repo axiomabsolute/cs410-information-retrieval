@@ -4,13 +4,14 @@ from operator import attrgetter
 import random
 from itertools import groupby
 from scipy import stats
+import numpy as np
 
 from music21 import converter, corpus
 from tabulate import tabulate
 import click
 
 from firms.sql_irsystems import SqlIRSystem
-from firms.graders import bm25_factory, log_weighted_sum_grader_factory
+from firms.graders import Bm25Grader, bm25_factory, log_weighted_sum_grader_factory
 from firms.stemmers import index_key_by_pitch, index_key_by_simple_pitch, index_key_by_interval,\
     index_key_by_contour, index_key_by_rythm, index_key_by_normalized_rythm
 
@@ -25,7 +26,7 @@ index_methods = {
 }
 
 scorer_methods = {
-    'BM25': bm25_factory()
+    'BM25': Bm25Grader()
 }
 
 composers_list = [
