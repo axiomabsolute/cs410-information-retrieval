@@ -5,8 +5,9 @@ import random
 from itertools import groupby
 from scipy import stats
 import csv
+from abc import ABCMeta, abstractmethod
 
-from music21 import converter, corpus
+from music21 import converter, corpus, note, stream
 from tabulate import tabulate
 import click
 
@@ -62,6 +63,77 @@ composers_list = [
 ]
 
 DEFAULT_DB_PATH = "firms.sqlite.db"
+
+operations = ['replace', 'remove', 'augment']
+note_names = list('efgabcde')
+accidentals = ['', '#', '-']
+octaves = list(range(-1, 14))
+durations = ['whole', 'half', 'quarter', '16th', '32nd']
+
+class TranscriptionErrorType():
+    def __init__(self, erate, efunction, name):
+        self.error_rate = erate
+        self.efunction = efunction
+        self.name = name
+
+    def introduce_error(self, sample_stream):
+        return self.efunction(sample_stream)
+
+def new_random_note_or_rest():
+    new_note = None
+    new_duration = random.choice(durations)
+    if random.random() < .5:
+        new_pitch = random.choice(note_names)
+        new_accidental = random.choice(accidentals)
+        new_octave = random.choice(octaves)
+        new_note = note.Note(new_pitch, new_accidental, new_octave, type=new_duration)
+    else:
+        new_note = note.Rest(type=new_duration)
+    return new_note
+
+def note_error(sample_stream):
+    result = stream.Stream(sample_stream)
+    random_note_idx = random.randint(0, len(result.notesAndRests))
+    # random_note = result.getElementAtOrBefore(random_note_idx, [note.Rest, note.Note])
+    operation_sample = random.choice(operations)
+    if operation_sample == 'replace':
+        print("\tIntroducing error: Note replace")
+        random_note = result.getElementAtOrBefore(random_note_idx, [note.Rest, note.Note])
+        result.replace(random_note, new_random_note_or_rest())
+    elif operation_sample == 'remove':
+        print("\tIntroducing error: Note remove")
+        random_note = result.getElementAtOrBefore(random_note_idx, [note.Rest, note.Note])
+        result.remove(random_note, firstMatchOnly=True, shiftOffsets=True)
+    elif operation_sample == 'augment':
+        print("\tIntroducing error: Note add")
+        new_note = new_random_note_or_rest()
+        result.insert(random_note_idx, new_note)
+    return sample_stream
+
+def transposition_error(sample_stream):
+    print("Introducing error: transposition")
+    return sample_stream.transpose(random.randint(-5,5))
+
+def build_error_types(note_error_rate, transposition_error_rate):
+    return [
+        TranscriptionErrorType(note_error_rate, note_error, 'Note Error'),
+        TranscriptionErrorType(transposition_error_rate, transposition_error, 'Transposition Error')
+    ]
+
+def introduce_error(sample_stream, erate, transcription_error_types):
+    # Sample erate. If false, return
+    if random.random() > erate:
+        return sample_stream
+    # Combine error types into a single distribution, sample to select an error type
+    cumulative_error_type = 0
+    error_type_sample = random.random()
+    for tet in transcription_error_types:
+        cumulative_error_type = cumulative_error_type + tet.error_rate
+        if error_type_sample <= cumulative_error_type:
+            print("Introducing error type %s" % tet.name)
+            return tet.introduce_error(sample_stream) 
+    print("No error added")
+    return sample_stream
 
 @click.command()
 @click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
@@ -201,7 +273,7 @@ def info_pieces(path, name, fname):
 
 @click.command("evaluate")
 @click.option('--n', default=2, help="Number of pieces to sample")
-@click.option('--erate', default=0, help="Rate at which to simulate error")
+@click.option('--erate', default=0.0, help="Rate at which to simulate error")
 @click.option('--minsize', default=3, help="Minimum sample size (in measures)")
 @click.option('--maxsize', default=7, help="Maximum sample size (in measures)")
 @click.option('--note_error', default=0.0, help="Error by replacing a random note in the snippet with a random note value")
@@ -232,6 +304,7 @@ def evaluate(n, erate, minsize, maxsize, note_error, transposition_error, output
         idx = random.randint(0, num_of_measures-sample_size)
         sample_stream = part.measures(idx, idx+sample_size).recurse().notesAndRests
         sample_detail = (piece.metadata.title, part, idx, sample_path)
+        sample_stream = introduce_error(sample_stream, erate, build_error_types(note_error, transposition_error))
         print("\tQuerying..")
         query_result = sqlIrSystem.query(sample_stream)
         query_results.append(query_result)
