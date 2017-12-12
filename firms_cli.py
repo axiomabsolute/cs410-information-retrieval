@@ -91,32 +91,39 @@ def new_random_note_or_rest():
         new_note = note.Rest(type=new_duration)
     return new_note
 
-def note_error(sample_stream):
+def add_note_error(sample_stream):
     result = stream.Stream(sample_stream)
     random_note_idx = random.randint(0, len(result.notesAndRests))
-    # random_note = result.getElementAtOrBefore(random_note_idx, [note.Rest, note.Note])
-    operation_sample = random.choice(operations)
-    if operation_sample == 'replace':
-        print("\tIntroducing error: Note replace")
-        random_note = result.getElementAtOrBefore(random_note_idx, [note.Rest, note.Note])
-        result.replace(random_note, new_random_note_or_rest())
-    elif operation_sample == 'remove':
-        print("\tIntroducing error: Note remove")
-        random_note = result.getElementAtOrBefore(random_note_idx, [note.Rest, note.Note])
-        result.remove(random_note, firstMatchOnly=True, shiftOffsets=True)
-    elif operation_sample == 'augment':
-        print("\tIntroducing error: Note add")
-        new_note = new_random_note_or_rest()
-        result.insert(random_note_idx, new_note)
-    return sample_stream
+    print("\tIntroducing error: Note add")
+    new_note = new_random_note_or_rest()
+    result.insert(random_note_idx, new_note)
+    return result
+
+def remove_note_error(sample_stream):
+    result = stream.Stream(sample_stream)
+    random_note_idx = random.randint(0, len(result.notesAndRests))
+    print("\tIntroducing error: Note remove")
+    random_note = result.getElementAtOrBefore(random_note_idx, [note.Rest, note.Note])
+    result.remove(random_note, firstMatchOnly=True, shiftOffsets=True)
+    return result
+
+def replace_note_error(sample_stream):
+    result = stream.Stream(sample_stream)
+    random_note_idx = random.randint(0, len(result.notesAndRests))
+    print("\tIntroducing error: Note replace")
+    random_note = result.getElementAtOrBefore(random_note_idx, [note.Rest, note.Note])
+    result.replace(random_note, new_random_note_or_rest())
+    return result
 
 def transposition_error(sample_stream):
     print("Introducing error: transposition")
     return sample_stream.transpose(random.randint(-5,5))
 
-def build_error_types(note_error_rate, transposition_error_rate):
+def build_error_types(add_note_error_rate, remove_note_error_rate, replace_note_error_rate, transposition_error_rate):
     return [
-        TranscriptionErrorType(note_error_rate, note_error, 'Note Error'),
+        TranscriptionErrorType(add_note_error_rate, add_note_error, 'Add Note Error'),
+        TranscriptionErrorType(remove_note_error_rate, remove_note_error, 'Remove Note Error'),
+        TranscriptionErrorType(replace_note_error_rate, replace_note_error, 'Replace Note Error'),
         TranscriptionErrorType(transposition_error_rate, transposition_error, 'Transposition Error')
     ]
 
@@ -276,11 +283,14 @@ def info_pieces(path, name, fname):
 @click.option('--erate', default=0.0, help="Rate at which to simulate error")
 @click.option('--minsize', default=3, help="Minimum sample size (in measures)")
 @click.option('--maxsize', default=7, help="Maximum sample size (in measures)")
-@click.option('--note_error', default=0.0, help="Error by replacing a random note in the snippet with a random note value")
+@click.option('--add_note_error', default=0.0, help="Error by adding a random note in the snippet with a random note value")
+@click.option('--remove_note_error', default=0.0, help="Error by removing a random note")
+@click.option('--replace_note_error', default=0.0, help="Error by replacing a random note in the snippet with a random note value")
 @click.option('--transposition_error', default=0.0, help="Error by transposing the key of the snippet")
 @click.option('--output', default=None, help="Path to write results out to")
+@click.option('--noprint', default=False, help="Set to True to skip printing results")
 @click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
-def evaluate(n, erate, minsize, maxsize, note_error, transposition_error, output, path):
+def evaluate(n, erate, minsize, maxsize, add_note_error, remove_note_error, replace_note_error, transposition_error, output, noprint, path):
     """
     Select random samples from the music21 corpus and run IR evaluation.
 
@@ -296,20 +306,25 @@ def evaluate(n, erate, minsize, maxsize, note_error, transposition_error, output
     details = []
     query_results = []
     for idx,sample_path in enumerate(sample_paths):
-        print("Sample %s: %s" % (idx + 1, sample_path))
-        piece = corpus.parse(sample_path)
-        part = random.choice(list(piece.recurse().parts))
-        num_of_measures = len(part.measures(0,None))
-        sample_size = random.randint(minsize, maxsize)
-        idx = random.randint(0, num_of_measures-sample_size)
-        sample_stream = part.measures(idx, idx+sample_size).recurse().notesAndRests
-        sample_detail = (piece.metadata.title, part, idx, sample_path)
-        sample_stream = introduce_error(sample_stream, erate, build_error_types(note_error, transposition_error))
-        print("\tQuerying..")
-        query_result = sqlIrSystem.query(sample_stream)
-        query_results.append(query_result)
-        details.append(sample_detail)
-    evaluations = print_evaluations(details, query_results)
+        try:
+            print("Sample %s: %s" % (idx + 1, sample_path))
+            piece = corpus.parse(sample_path)
+            part = random.choice(list(piece.recurse().parts))
+            num_of_measures = len(part.measures(0,None))
+            sample_size = random.randint(minsize, maxsize)
+            idx = random.randint(0, num_of_measures-sample_size)
+            sample_stream = part.measures(idx, idx+sample_size).recurse().notesAndRests
+            sample_detail = (piece.metadata.title, part, idx, sample_path)
+            sample_stream = introduce_error(sample_stream, erate, build_error_types(add_note_error, remove_note_error, replace_note_error, transposition_error))
+            print("\tQuerying..")
+            query_result = sqlIrSystem.query(sample_stream)
+            query_results.append(query_result)
+            details.append(sample_detail)
+        except Exception as e:
+            print("Unable to process piece %s" % sample_path)
+            print(e)
+    if not noprint:
+        evaluations = print_evaluations(details, query_results)
     print("Computing evaluation metrics")
     # Filter by [3] (is actual)
     tp_evaluations = [x for x in evaluations if x[3]]
@@ -350,8 +365,10 @@ def print_evaluations(sample_details, query_results):
         for grader,results in grader_results.items():
             results_ordered_by_grade = sorted(results, key=attrgetter('grade'), reverse=True)
             for result_number,(piece, grade, meta) in enumerate(results_ordered_by_grade):
-                is_actual = detail[3] == piece
+                is_actual = detail[3].lower() == piece.lower()
                 if result_number < 5 or is_actual:
+                    print(piece)
+                    print(detail[3])
                     piece_split = piece.split('site-packages')
                     truncated_piece = '..%s' % piece_split[-1] if len(piece_split) > 1 else piece
                     table_rows.append([
