@@ -5,7 +5,7 @@ import datetime
 
 import music21
 
-LookupMatch = namedtuple('LookupMatch', ['id', 'piece', 'part', 'offset', 'stem', 'path'])
+LookupMatch = namedtuple('LookupMatch', ['id', 'piece', 'part', 'offset', 'stem', 'path', 'piece_id'])
 GraderMatch = namedtuple('GraderMatch', ['stemmer', 'lookup_match'])
 GraderResult = namedtuple('GraderResult', ['piece', 'grade', 'meta'])
 

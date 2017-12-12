@@ -154,10 +154,16 @@ class SqlIRSystem(IRSystem):
         result = cursor.fetchone()
         return result[0]
 
+    def piece_by_id(self, id):
+        conn = sqlite3.connect(self.dbpath)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM pieces WHERE pieces.id=?", (id, ))
+        return cursor.fetchall()
+
     def pieces(self):
         conn = sqlite3.connect(self.dbpath)
         cursor = conn.cursor()
-        cursor.execute("SELECT name, path FROM pieces")
+        cursor.execute("SELECT name, path, id FROM pieces")
         return cursor.fetchall()
 
     def stemmers(self):
@@ -230,10 +236,10 @@ class SqlIndex(FirmIndex):
     def lookup(self, snippet, conn, cursor):
         stems = self.keyfn(snippet)
         for stem in stems:
-            cursor.execute("""SELECT snippets.id, pieces.name, snippets.part_id as part, snippets.offset, stems.id, pieces.path FROM snippets
+            cursor.execute("""SELECT snippets.id, pieces.name, snippets.part_id as part, snippets.offset, stems.id, pieces.path, pieces.id FROM snippets
                             JOIN entries ON entries.snippet_id=snippets.id
                             JOIN stems ON stems.id=entries.stem_id
                             JOIN pieces ON pieces.id=snippets.piece_id
                             WHERE stems.stem=?""", (stem, ))
         results = cursor.fetchall()
-        return [ {'id': r[0], 'piece': r[5], 'part': r[2], 'offset': r[3], 'stem': r[4], 'path': r[5]} for r in results ]
+        return [ {'id': r[0], 'piece': r[5], 'part': r[2], 'offset': r[3], 'stem': r[4], 'path': r[5], 'piece_id': r[6]} for r in results ]

@@ -18,8 +18,9 @@ by_stemmer = attrgetter('stemmer')
 
 # Dictionaries use itemgetter
 by_piece = itemgetter('piece')
+by_piece_id = itemgetter('piece_id')
 by_stem = itemgetter('stem')
-by_lookup_match_piece = by(by_lookup_match, by_piece)
+by_lookup_match_piece = by(by_lookup_match, by_piece_id)
 by_lookup_match_stem = by(by_lookup_match, by_stem)
 
 def bm25_idf(N, df):

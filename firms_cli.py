@@ -8,6 +8,7 @@ import csv
 from abc import ABCMeta, abstractmethod
 
 from music21 import converter, corpus, note, stream
+from music21 import stream as m21stream
 from tabulate import tabulate
 import click
 
@@ -164,8 +165,9 @@ def add():
 def add_piece(piecepath, path):
     """Add musicXML piece to firms index"""
     sqlIrSystem = connect(path)
-    piece = converter.parse(piecepath)
-    sqlIrSystem.add_piece(piece, piecepath)
+    stream = converter.parse(piecepath)
+    for piece in stream.recurse(classFilter=m21stream.Score, skipSelf=False):
+        sqlIrSystem.add_piece(piece, piecepath)
 
 @click.command("composer")
 @click.option('--composer', help="Composer's name to add")
@@ -181,8 +183,9 @@ def add_composer(composer, filetype, path):
     if len(paths) == 0:
         print("Error: no pieces found matching composer %s" % composer)
     for path in paths:
-        piece = corpus.parse(path)
-        sqlIRSystem.add_piece(piece, path)
+        stream = corpus.parse(path)
+        for piece in stream.recurse(classFilter=m21stream.Score, skipSelf=False):
+            sqlIRSystem.add_piece(piece, path)
 
 @click.command('music21')
 @click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
@@ -196,8 +199,9 @@ def add_music21(path):
     for idx,path in enumerate(paths):
         print("Adding piece %s of %s" % (idx, num_pieces))
         try:
-            piece = corpus.parse(path)
-            sqlIRSystem.add_piece(piece, path)
+            stream = corpus.parse(path)
+            for piece in stream.recurse(classFilter=m21stream.Score, skipSelf=False):
+                sqlIRSystem.add_piece(piece, path)
         except:
             print("\tUnable to process piece %s" % path)
 
@@ -282,7 +286,15 @@ def info_pieces(path, name, fname):
                 lambda x: fname.lower() in x[1].lower(),
                 filter(lambda x: name.lower() in x[0].lower(),
                     sqlIrSystem.pieces()))
-    print(list(result))
+    print_pieces(list(result))
+
+@click.command("piece")
+@click.option("--id", help="ID of the piece to lookup")
+@click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
+def info_piece(id, path):
+    sqlIrSystem = connect(path)
+    results = sqlIrSystem.piece_by_id(id)
+    print_pieces(results)
 
 @click.command("evaluate")
 @click.option('--n', default=2, help="Number of pieces to sample")
@@ -298,7 +310,7 @@ def info_pieces(path, name, fname):
 @click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
 def evaluate(n, erate, minsize, maxsize, add_note_error, remove_note_error, replace_note_error, transposition_error, output, noprint, path):
     """
-    Select random samples from the music21 corpus and run IR evaluation.
+    Select random samples from index and run IR evaluation.
 
     Select n random samples of length [minsize, maxsize] measures
     With probability erate, introduce errors to the sampled snippets
@@ -306,31 +318,31 @@ def evaluate(n, erate, minsize, maxsize, add_note_error, remove_note_error, repl
     """
     print("Running evaluation with %s samples" % n)
     sqlIrSystem = connect(path)
-    paths = corpus.getPaths(fileExtensions=['xml'])
+    pieces = sqlIrSystem.pieces()
     print("Selecing sample pieces")
-    sample_paths = random.sample(paths, n)
+    sample_pieces = random.sample(pieces, n)
     details = []
     query_results = []
-    for idx,sample_path in enumerate(sample_paths):
+    for idx,sample_piece in enumerate(sample_pieces):
         try:
-            print("Sample %s: %s" % (idx + 1, sample_path))
-            piece = corpus.parse(sample_path)
+            sample_piece_name, sample_piece_path, sample_piece_id = sample_piece
+            print("Sample %s: %s (%s)" % (idx + 1, sample_piece_name, sample_piece_path))
+            piece = corpus.parse(sample_piece_path)
             part = random.choice(list(piece.recurse().parts))
             num_of_measures = len(part.measures(0,None))
             sample_size = random.randint(minsize, maxsize)
             idx = random.randint(0, num_of_measures-sample_size)
             sample_stream = part.measures(idx, idx+sample_size).recurse().notesAndRests
-            sample_detail = (piece.metadata.title, part, idx, sample_path)
+            sample_detail = (sample_piece_name, part, idx, sample_piece_path, sample_piece_id)
             sample_stream = introduce_error(sample_stream, erate, build_error_types(add_note_error, remove_note_error, replace_note_error, transposition_error))
             print("\tQuerying..")
             query_result = sqlIrSystem.query(sample_stream)
             query_results.append(query_result)
             details.append(sample_detail)
         except Exception as e:
-            print("Unable to process piece %s" % sample_path)
+            print("Unable to process piece %s" % sample_piece_path)
             print(e)
-    if not noprint:
-        evaluations = print_evaluations(details, query_results)
+    evaluations = print_evaluations(details, query_results, noprint)
     print("Computing evaluation metrics")
     # Filter by [3] (is actual)
     tp_evaluations = [x for x in evaluations if x[3]]
@@ -382,18 +394,16 @@ def print_results(grader_results):
     print(tabulate(table_rows, headers=table_headers))
     return table_rows
 
-def print_evaluations(sample_details, query_results):
+def print_evaluations(sample_details, query_results, skip_print):
     table_rows = []
-    table_headers = ['Query Source', 'Grader', 'Piece', 'Actual', 'Rank', 'Grade']
+    table_headers = ['Query Source', 'Grader', 'Piece ID', 'Actual', 'Rank', 'Grade']
     for (detail, grader_results) in zip(sample_details, query_results):
         for grader,results in grader_results.items():
             results_ordered_by_grade = sorted(results, key=attrgetter('grade'), reverse=True)
             for result_number,(piece, grade, meta) in enumerate(results_ordered_by_grade):
-                is_actual = detail[3].lower() == piece.lower()
+                is_actual = detail[4] == piece
                 if result_number < 5 or is_actual:
-                    print(piece)
-                    print(detail[3])
-                    piece_split = piece.split('site-packages')
+                    piece_split = detail[0].split('site-packages')
                     truncated_piece = '..%s' % piece_split[-1] if len(piece_split) > 1 else piece
                     table_rows.append([
                         "%s %s (m %s)" % (detail[0], detail[1].partName, detail[2]),
@@ -404,8 +414,13 @@ def print_evaluations(sample_details, query_results):
                         round(grade, 2)
                     ])
     table_rows.sort(key=lambda x: (x[0], x[1], -1*x[5]))
-    print(tabulate(table_rows, headers=table_headers))
+    if not skip_print:
+        print(tabulate(table_rows, headers=table_headers))
     return table_rows
+
+def print_pieces(pieces):
+    table_headers = ['Name', 'Path', 'ID']
+    print(tabulate(pieces, headers=table_headers))
 
 @click.group()
 def cli():
@@ -414,6 +429,7 @@ def cli():
 # Build command groups
 info.add_command(info_pieces)
 info.add_command(info_general)
+info.add_command(info_piece)
 
 add.add_command(add_piece)
 add.add_command(add_composer)
