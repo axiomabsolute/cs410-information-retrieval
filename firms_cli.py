@@ -153,6 +153,9 @@ def connect(path):
 
 @click.group()
 def add():
+    """
+    Group of commands for adding pieces to the FIRMS index
+    """
     pass
 
 @click.command("piece")
@@ -184,6 +187,9 @@ def add_composer(composer, filetype, path):
 @click.command('music21')
 @click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
 def add_music21(path):
+    """
+    Add all pieces supplied in the default music21 corpus
+    """
     sqlIRSystem = connect(path)
     paths = corpus.getPaths()
     num_pieces = len(paths)
@@ -342,6 +348,24 @@ def evaluate(n, erate, minsize, maxsize, add_note_error, remove_note_error, repl
             for row in evaluations:
                 writer.writerow(row)
 
+@click.command("show")
+@click.option("--piece_path", help="Partial path to a piece to show")
+@click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
+def show(piece_path, path):
+    """
+    Retrieve a piece and open it as a MusicXML file.
+
+    Warning: for some file types this may open up several browser tabs, which can be slow.
+    """
+    try:
+        sqlIrSystem = connect(path)
+        full_path = [p for (n, p) in sqlIrSystem.pieces() if piece_path.lower() in p.lower()][0]
+        piece = corpus.parse(full_path)
+        piece.show()
+    except Exception as e:
+        print("Unable to show %s" % piece_path)
+        print(e)
+
 def print_results(grader_results):
     table_rows = []
     table_headers = ['Grading Method', 'Piece', 'Rank', 'Grade']
@@ -407,6 +431,7 @@ cli.add_command(query)
 cli.add_command(create)
 cli.add_command(show_composers)
 cli.add_command(evaluate)
+cli.add_command(show)
 
 if __name__ == "__main__":
     cli()
