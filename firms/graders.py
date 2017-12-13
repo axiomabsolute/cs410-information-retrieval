@@ -46,6 +46,16 @@ def bm25_factory():
         return [ GraderResult(piece=piece, grade=sum([bm25_tf(cnt) * bm25_idf(number_of_pieces, dfs[stem]) for stem,cnt in piece_tfs.items() ]), meta={}) for piece, piece_tfs in tfs.items()]
     return bm25
 
+def update_with(d1, d2, aggregator, zero):
+    for k,v in d2.items():
+        if k not in d1:
+            d1[k] = zero()
+        d1[k] = aggregator(d1[k], v)
+    return d1
+
+def update_with_sum(d1, d2):
+    return update_with(d1, d2, lambda a,b: a+b, lambda: 0)
+
 class Grader(metaclass=ABCMeta):
     def __init__(self):
         self.zero()
@@ -94,11 +104,12 @@ class Bm25Grader(Grader):
             for stem, stem_matches in groupby(sorted(piece_matches, key=by_lookup_match_stem), by_lookup_match_stem):
                 tfs[piece][stem] = len(list(stem_matches))
 
-        self.dfs.update(dfs)
+        # Merge existing with this iteration
+        update_with_sum(self.dfs, dfs)
         for piece, piece_stems in tfs.items():
             if piece not in self.tfs:
                 self.tfs[piece] = {}
-            self.tfs[piece].update(piece_stems)
+            update_with_sum(self.tfs[piece], piece_stems)
 
 class LogWeightedSumGrader(Grader):
     def __init__(self, weights):
