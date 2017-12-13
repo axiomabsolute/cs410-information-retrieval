@@ -6,6 +6,7 @@ from itertools import groupby
 from scipy import stats
 import csv
 from abc import ABCMeta, abstractmethod
+import traceback
 
 from music21 import converter, corpus, note, stream
 from music21 import stream as m21stream
@@ -335,15 +336,16 @@ def evaluate(n, erate, minsize, maxsize, add_note_error, remove_note_error, repl
             sample_stream = part.measures(idx, idx+sample_size).recurse().notesAndRests
             sample_detail = (sample_piece_name, part, idx, sample_piece_path, sample_piece_id)
             sample_stream = introduce_error(sample_stream, erate, build_error_types(add_note_error, remove_note_error, replace_note_error, transposition_error))
+            if output:
+                print("\tSaving query sample")
+                sample_stream.write("xml", "%s/%s.sample.xml" % (output, sample_piece_name))
             print("\tQuerying..")
             query_result = sqlIrSystem.query(sample_stream)
             query_results.append(query_result)
             details.append(sample_detail)
-            if output:
-                print("\tSaving query sample")
-                sample_stream.write("xml", "%s/%s.sample.xml" % (output, sample_piece_name))
         except Exception as e:
             print("Unable to process piece %s" % sample_piece_path)
+            traceback.print_exc()
             print(e)
     evaluations = print_evaluations(details, query_results, noprint)
     print("Computing evaluation metrics")

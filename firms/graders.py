@@ -24,6 +24,7 @@ by_lookup_match_piece = by(by_lookup_match, by_piece_id)
 by_lookup_match_stem = by(by_lookup_match, by_stem)
 
 def bm25_idf(N, df):
+    assert(N > df)
     return log( (N - df + 0.5) / (df + 0.5) )
 
 def bm25_tf(tf, k=1.2):
@@ -52,6 +53,9 @@ def update_with(d1, d2, aggregator, zero):
             d1[k] = zero()
         d1[k] = aggregator(d1[k], v)
     return d1
+
+def update_with_union(d1, d2):
+    return update_with(d1,d2, lambda a,b: a.union(b), lambda: set())
 
 def update_with_sum(d1, d2):
     return update_with(d1, d2, lambda a,b: a+b, lambda: 0)
@@ -89,13 +93,13 @@ class Bm25Grader(Grader):
     def grade(self, number_of_pieces):
         tfs = self.tfs
         dfs = self.dfs
-        return [ GraderResult(piece=piece, grade=sum([bm25_tf(cnt) * bm25_idf(number_of_pieces, dfs[stem]) for stem,cnt in piece_tfs.items() ]), meta={}) for piece, piece_tfs in tfs.items()]
+        return [ GraderResult(piece=piece, grade=sum([bm25_tf(cnt) * bm25_idf(number_of_pieces, len(dfs[stem])) for stem,cnt in piece_tfs.items() ]), meta={}) for piece, piece_tfs in tfs.items()]
 
     def aggregate(self, matches):
         # Compute DF - Dictionary from stem -> piece count
         dfs = {}
         for stem, stem_matches in groupby(sorted(matches, key=by_lookup_match_stem), by_lookup_match_stem):
-            dfs[stem] = len(set(map(by_lookup_match_piece, stem_matches)))
+            dfs[stem] = set(map(by_lookup_match_piece, stem_matches))
 
         # For each piece compute TF scores - Dictionary from piece to Dictionary from stem to count
         tfs = {}
@@ -105,7 +109,7 @@ class Bm25Grader(Grader):
                 tfs[piece][stem] = len(list(stem_matches))
 
         # Merge existing with this iteration
-        update_with_sum(self.dfs, dfs)
+        update_with_union(self.dfs, dfs)
         for piece, piece_stems in tfs.items():
             if piece not in self.tfs:
                 self.tfs[piece] = {}
