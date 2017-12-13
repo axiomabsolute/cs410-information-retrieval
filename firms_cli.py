@@ -328,7 +328,7 @@ def evaluate(n, erate, minsize, maxsize, add_note_error, remove_note_error, repl
         try:
             sample_piece_name, sample_piece_path, sample_piece_id = sample_piece
             print("Sample %s: %s (%s)" % (idx + 1, sample_piece_name, sample_piece_path))
-            piece = corpus.parse(sample_piece_path)
+            piece = converter.parse(sample_piece_path)
             part = random.choice(list(piece.recurse().parts))
             num_of_measures = len(part.measures(0,None))
             sample_size = random.randint(minsize, maxsize)
