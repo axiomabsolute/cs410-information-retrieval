@@ -18,6 +18,7 @@ from firms.graders import Bm25Grader, LogWeightedSumGrader
 from firms.stemmers import index_key_by_pitch, index_key_by_simple_pitch, index_key_by_interval,\
     index_key_by_contour, index_key_by_rythm, index_key_by_normalized_rythm
 
+valid_chars = '-_.() abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
 
 index_methods = {
     'By Pitch': index_key_by_pitch,
@@ -80,6 +81,9 @@ class TranscriptionErrorType():
 
     def introduce_error(self, sample_stream):
         return self.efunction(sample_stream)
+
+def clean_file_name(filename):
+    return ''.join([i for i in filename if i in valid_chars])
 
 def new_random_note_or_rest():
     new_note = None
@@ -338,7 +342,7 @@ def evaluate(n, erate, minsize, maxsize, add_note_error, remove_note_error, repl
             sample_stream = introduce_error(sample_stream, erate, build_error_types(add_note_error, remove_note_error, replace_note_error, transposition_error))
             if output:
                 print("\tSaving query sample")
-                sample_stream.write("xml", "%s/%s.sample.xml" % (output, sample_piece_name))
+                sample_stream.write("xml", "%s/%s.sample.xml" % (output, clean_file_name(sample_piece_name)))
             print("\tQuerying..")
             query_result = sqlIrSystem.query(sample_stream)
             query_results.append(query_result)
