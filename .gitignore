@@ -34,4 +34,3 @@ __pycache__
 
 # Project specific
 *.db
-examples/*
