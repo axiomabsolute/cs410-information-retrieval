@@ -17,20 +17,21 @@ class SqlIRSystem(IRSystem):
 
     def add_piece(self, piece, piece_path):
         with sqlite3.connect(self.dbpath) as conn:
-            with conn.cursor() as cursor:
-                cursor.execute("PRAGMA synchronous = OFF")
-                cursor.execute("PRAGMA journal_mode = OFF")
-                piece_id = None
-                for part in get_part_details(piece):
-                    piece_name = part.piece
-                    part_name = part.name
-                    if not piece_id:
-                        piece_id = self.ensure_piece(piece_path, piece_name, conn, cursor)
-                    part_id = self.ensure_part(piece_id, part_name, conn, cursor)
-                    snippets = list(get_snippets_for_part(part))
-                    snippet_ids = self.ensure_snippets(snippets, piece_id, part_id, conn, cursor)
-                    for idx in self.indexes.values():
-                        idx.add_snippets(snippets, snippet_ids, conn, cursor)
+            cursor = conn.cursor()
+            cursor.execute("PRAGMA synchronous = OFF")
+            cursor.execute("PRAGMA journal_mode = OFF")
+            piece_id = None
+            for part in get_part_details(piece):
+                piece_name = part.piece
+                part_name = part.name
+                if not piece_id:
+                    piece_id = self.ensure_piece(piece_path, piece_name, conn, cursor)
+                part_id = self.ensure_part(piece_id, part_name, conn, cursor)
+                snippets = list(get_snippets_for_part(part))
+                snippet_ids = self.ensure_snippets(snippets, piece_id, part_id, conn, cursor)
+                for idx in self.indexes.values():
+                    idx.add_snippets(snippets, snippet_ids, conn, cursor)
+            cursor.close()
 
     def ensure_db(self, conn):
         cursor = conn.cursor()
