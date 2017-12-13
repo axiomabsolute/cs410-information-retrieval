@@ -221,9 +221,12 @@ def query_tiny(query, output, path):
         Examples firms_cli.py tiny --query "tinyNotation: 3/4 E4 r f# g=lastG trip{b-8 a g} c4~ c" --path "example.db.sqlite" 
     """
     sqlIrSystem = connect(path)
+    print("Parsing query")
     stream = converter.parse(query)
     notes = stream.recurse().notesAndRests
+    print("Querying")
     results = sqlIrSystem.query(notes)
+    print("Formatting results")
     formatted_results = print_results(results)
     if output:
         with open(output, 'w') as outf:
