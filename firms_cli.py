@@ -339,6 +339,9 @@ def evaluate(n, erate, minsize, maxsize, add_note_error, remove_note_error, repl
             query_result = sqlIrSystem.query(sample_stream)
             query_results.append(query_result)
             details.append(sample_detail)
+            if output:
+                print("\tSaving query sample")
+                sample_stream.write("xml", "%s/%s.sample.xml" % (output, sample_piece_name))
         except Exception as e:
             print("Unable to process piece %s" % sample_piece_path)
             print(e)
@@ -355,7 +358,7 @@ def evaluate(n, erate, minsize, maxsize, add_note_error, remove_note_error, repl
         for stat,val in zip(description._fields, description):
             print("\t%s: %s" % (stat,val))
     if output:
-        with open(output, 'w') as outf:
+        with open(output + '/results.csv', 'w') as outf:
             writer = csv.writer(outf, lineterminator="\n")
             for row in evaluations:
                 writer.writerow(row)
