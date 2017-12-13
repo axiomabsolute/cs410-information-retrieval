@@ -177,7 +177,6 @@ class SqlIRSystem(IRSystem):
         results = {}
         conn = sqlite3.connect(self.dbpath)
         cursor = conn.cursor()
-        print(cursor.arraysize)
         for table in tables:
             cursor.execute("SELECT count(*) FROM %s" % table)
             results[table] = cursor.fetchone()[0]
