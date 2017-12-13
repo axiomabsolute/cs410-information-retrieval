@@ -7,33 +7,30 @@ class SqlIRSystem(IRSystem):
         # Ensure pieces, stemmers, snippets, parts, stems, and entries tables exist
         # Add each index method to stemmers table
         self.dbpath = dbpath
-        conn = sqlite3.connect(self.dbpath)
-        self.ensure_db(conn)
-        self.stemmer_ids = self.ensure_stemmers(index_methods, conn)
-        conn.close()
+        with sqlite3.connect(self.dbpath) as conn:
+            self.ensure_db(conn)
+            self.stemmer_ids = self.ensure_stemmers(index_methods, conn)
         super().__init__(index_methods, graders, piece_paths, rebuild)
 
     def makeEmptyIndex(self, indexfn, name):
         return SqlIndex(self.dbpath, [], indexfn, name, self.stemmer_ids[name])
 
     def add_piece(self, piece, piece_path):
-        conn = sqlite3.connect(self.dbpath)
-        cursor = conn.cursor()
-        cursor.execute("PRAGMA synchronous = OFF")
-        cursor.execute("PRAGMA journal_mode = OFF")
-        piece_id = None
-        for part in get_part_details(piece):
-            piece_name = part.piece
-            part_name = part.name
-            if not piece_id:
-                piece_id = self.ensure_piece(piece_path, piece_name, conn, cursor)
-            part_id = self.ensure_part(piece_id, part_name, conn, cursor)
-            snippets = list(get_snippets_for_part(part))
-            snippet_ids = self.ensure_snippets(snippets, piece_id, part_id, conn, cursor)
-            for idx in self.indexes.values():
-                idx.add_snippets(snippets, snippet_ids, conn, cursor)
-        cursor.close()
-        conn.close()
+        with sqlite3.connect(self.dbpath) as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("PRAGMA synchronous = OFF")
+                cursor.execute("PRAGMA journal_mode = OFF")
+                piece_id = None
+                for part in get_part_details(piece):
+                    piece_name = part.piece
+                    part_name = part.name
+                    if not piece_id:
+                        piece_id = self.ensure_piece(piece_path, piece_name, conn, cursor)
+                    part_id = self.ensure_part(piece_id, part_name, conn, cursor)
+                    snippets = list(get_snippets_for_part(part))
+                    snippet_ids = self.ensure_snippets(snippets, piece_id, part_id, conn, cursor)
+                    for idx in self.indexes.values():
+                        idx.add_snippets(snippets, snippet_ids, conn, cursor)
 
     def ensure_db(self, conn):
         cursor = conn.cursor()
@@ -180,6 +177,7 @@ class SqlIRSystem(IRSystem):
         results = {}
         conn = sqlite3.connect(self.dbpath)
         cursor = conn.cursor()
+        print(cursor.arraysize)
         for table in tables:
             cursor.execute("SELECT count(*) FROM %s" % table)
             results[table] = cursor.fetchone()[0]
