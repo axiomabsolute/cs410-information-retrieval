@@ -61,3 +61,25 @@ This particular implementation uses a local SQLite database to store the pre-com
 ### Scaling and Improvements
 
 One interesting side-effect of the chosen architecture is that the applciation may be trivially scaled by hosting multiple instances behind a load balancer. On insert, an arbitrary instance could be chosen to store the piece. On query, a scatter-gather approach could pass the query to each instance, and the final results streamed back to the load balancer for aggregation. This approach would enable parallel persistent storage IO on each instance. With some further modification, each instance could be configured to locally aggregate results before passing them on for final aggregation, effectively recreating the MapReduce pipeline.
+
+## Examples
+
+The `./examples` directory contains a number of example music scores that can be added to the system for demo purposes. Each of these pieces is in the public domain and are available at [OpenMusicScore](http://openmusicscore.org/). To add these pieces to the index, run
+
+> `python.exe firms_cli.py add dir "examples"`
+
+Each piece can be queried using the CLI method:
+
+> `python.exe firms_cli.py query tiny <tiny-query>`
+
+Replace `<tiny-query>` in the command above with the query corresponding to the piece in the table below:
+
+| Piece | Query |
+| ----- | ----- |
+| Amazing Grace | tinynotation: g8 c'2 e'8 c' e'2 d'4 c'2 a4 g2 g4 c'2 e'8 c' e'2 d'4 g'2  |
+| Entertainer |  |
+| March of the Wooden Soldiers |  |
+| Ode to Joy |  |
+| Korsakov Op 11 No 4 |  |
+
+More information on tinynotation can be found [in the music21 documentation](http://web.mit.edu/music21/doc/moduleReference/moduleTinyNotation.html).
