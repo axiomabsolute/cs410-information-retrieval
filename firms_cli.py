@@ -7,6 +7,7 @@ from scipy import stats
 import csv
 from abc import ABCMeta, abstractmethod
 import traceback
+import os
 
 from music21 import converter, corpus, note, stream
 from music21 import stream as m21stream
@@ -81,6 +82,12 @@ class TranscriptionErrorType():
 
     def introduce_error(self, sample_stream):
         return self.efunction(sample_stream)
+
+def add_piece_to_index(piecepath, path):
+    sqlIrSystem = connect(path)
+    stream = converter.parse(piecepath)
+    for piece in stream.recurse(classFilter=m21stream.Score, skipSelf=False):
+        sqlIrSystem.add_piece(piece, piecepath)
 
 def clean_file_name(filename):
     return ''.join([i for i in filename if i in valid_chars])
@@ -169,10 +176,7 @@ def add():
 @click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
 def add_piece(piecepath, path):
     """Add musicXML piece to firms index"""
-    sqlIrSystem = connect(path)
-    stream = converter.parse(piecepath)
-    for piece in stream.recurse(classFilter=m21stream.Score, skipSelf=False):
-        sqlIrSystem.add_piece(piece, piecepath)
+    add_piece_to_index(piecepath, path)
 
 @click.command("composer")
 @click.option('--composer', help="Composer's name to add")
@@ -191,6 +195,18 @@ def add_composer(composer, filetype, path):
         stream = corpus.parse(path)
         for piece in stream.recurse(classFilter=m21stream.Score, skipSelf=False):
             sqlIRSystem.add_piece(piece, path)
+
+@click.command("dir")
+@click.argument('dirpath', type=click.Path(exists=True))
+@click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
+def add_directory(dirpath, path):
+    for root, dirs, files in os.walk(dirpath):
+        for filename in files:
+            if filename.endswith('.xml') or filename.endswith('.mxl'):
+                print("Adding piece %s" % (filename))
+                add_piece_to_index(os.path.join(root, filename), path)
+            else:
+                print("Skipping piece %s: only mxl and xml files supported" % filename)
 
 @click.command('music21')
 @click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
@@ -211,14 +227,16 @@ def add_music21(path):
             print("\tUnable to process piece %s" % path)
 
 @click.command("tiny")
-@click.option('--query', help="Snippet of target piece, in TinyNotation")
+@click.argument('query')
 @click.option('--output', default=None, help="Path to write results out to")
 @click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
 def query_tiny(query, output, path):
     """
-        Query for piece using tiny notation
+        Query for piece using tiny notation.
 
-        Examples firms_cli.py tiny --query "tinyNotation: 3/4 E4 r f# g=lastG trip{b-8 a g} c4~ c" --path "example.db.sqlite" 
+        Example:
+
+        python.exe firms_cli.py tiny "tinyNotation: 3/4 E4 r f# g=lastG trip{b-8 a g} c4~ c" --path "example.db.sqlite" 
     """
     sqlIrSystem = connect(path)
     print("Parsing query")
@@ -227,7 +245,7 @@ def query_tiny(query, output, path):
     print("Querying")
     results = sqlIrSystem.query(notes)
     print("Formatting results")
-    formatted_results = print_results(results)
+    formatted_results = print_results(results, sqlIrSystem.pieces())
     if output:
         with open(output, 'w') as outf:
             writer = csv.writer(outf, lineterminator="\n")
@@ -235,14 +253,17 @@ def query_tiny(query, output, path):
                 writer.writerow(row)
 
 @click.command("piece")
-@click.option('--file', help="Path to Music XML (or MXL) file containing query")
+@click.argument('file')
 @click.option('--output', default=None, help="Path to write results out to")
 @click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
 def query_piece(file, output, path):
+    """
+    Query for piece using an example MusicXML document.
+    """
     sqlIrSystem = connect(path)
     stream = converter.parse(file)
     results = sqlIrSystem.query(stream)
-    formatted_results = print_results(results)
+    formatted_results = print_results(results, sqlIrSystem.pieces())
     if output:
         with open(output, 'w') as outf:
             writer = csv.writer(outf, lineterminator="\n")
@@ -390,16 +411,46 @@ def show(piece_path, path):
         print("Unable to show %s" % piece_path)
         print(e)
 
-def print_results(grader_results):
+@click.group('midi')
+def midi():
+    """
+    Play a score as MIDI
+    """
+    pass
+
+@click.command("tiny")
+@click.argument("tinynotation")
+def midi_tiny(tinynotation):
+    """
+    Play the given tiny notation as MIDI.
+    """
+    stream = converter.parse(tinynotation)
+    stream.show('midi')
+
+@click.command("xmlfile")
+@click.argument('filepath', type=click.Path(exists=True))
+def midi_xml(filepath):
+    """
+    Play the given MusicXML or MXL file as MIDI.
+    """
+    stream = converter.parse(tinynotation)
+    stream.show('midi')
+
+def print_results(grader_results, pieces, show_path=False):
     table_rows = []
-    table_headers = ['Grading Method', 'Piece', 'Rank', 'Grade']
+    table_headers = ['Grading Method', 'Piece ID', 'Rank', 'Grade']
+    pieces_lookup = {piece[2]: piece for piece in pieces}
     for grader,results in grader_results.items():
         results_ordered_by_grade = sorted(results, key=attrgetter('grade'), reverse=True)
         for result_number,(piece, grade, meta) in enumerate(results_ordered_by_grade):
             if result_number < 10:
+                piece_info = pieces_lookup[piece]
+                piece_cell = [piece, piece_info[0]]
+                if show_path:
+                    piece_cell.append(piece_info[1])
                 table_rows.append([
                     grader,
-                    piece,
+                    ' '.join(map(str, piece_cell)),
                     result_number,
                     grade
                 ])
@@ -446,14 +497,19 @@ info.add_command(info_piece)
 add.add_command(add_piece)
 add.add_command(add_composer)
 add.add_command(add_music21)
+add.add_command(add_directory)
 
 query.add_command(query_tiny)
 query.add_command(query_piece)
+
+midi.add_command(midi_tiny)
+midi.add_command(midi_xml)
 
 # Add groups to root
 cli.add_command(info)
 cli.add_command(add)
 cli.add_command(query)
+cli.add_command(midi)
 
 # Add orphan commands
 cli.add_command(create)
