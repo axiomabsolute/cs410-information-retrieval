@@ -8,6 +8,7 @@ import csv
 from abc import ABCMeta, abstractmethod
 import traceback
 import os
+import time
 
 from music21 import converter, corpus, note, stream
 from music21 import stream as m21stream
@@ -238,6 +239,7 @@ def query_tiny(query, output, path):
 
         python.exe firms_cli.py tiny "tinyNotation: 3/4 E4 r f# g=lastG trip{b-8 a g} c4~ c" --path "example.db.sqlite" 
     """
+    start = time.time()
     sqlIrSystem = connect(path)
     print("Parsing query")
     stream = converter.parse(query)
@@ -251,6 +253,7 @@ def query_tiny(query, output, path):
             writer = csv.writer(outf, lineterminator="\n")
             for row in formatted_results:
                 writer.writerow(row)
+    print("Elapsed time %s secs" % (time.time() - start))
 
 @click.command("piece")
 @click.argument('file')

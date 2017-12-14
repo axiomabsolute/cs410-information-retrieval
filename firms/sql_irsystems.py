@@ -1,5 +1,6 @@
 from firms.models import IRSystem, FirmIndex, get_part_details, get_snippets_for_part, print_timing
 import sqlite3
+from itertools import chain
 
 class SqlIRSystem(IRSystem):
 
@@ -232,6 +233,8 @@ class SqlIndex(FirmIndex):
         return entry_id
 
     def lookup(self, snippet, conn, cursor):
+        cursor.arraysize = 1000
+        results = []
         stems = self.keyfn(snippet)
         for stem in stems:
             cursor.execute("""SELECT snippets.id, pieces.name, snippets.part_id as part, snippets.offset, stems.id, pieces.path, pieces.id FROM snippets
@@ -239,5 +242,8 @@ class SqlIndex(FirmIndex):
                             JOIN stems ON stems.id=entries.stem_id
                             JOIN pieces ON pieces.id=snippets.piece_id
                             WHERE stems.stem=?""", (stem, ))
-        results = cursor.fetchall()
-        return [ {'id': r[0], 'piece': r[5], 'part': r[2], 'offset': r[3], 'stem': r[4], 'path': r[5], 'piece_id': r[6]} for r in results ]
+            result = cursor.fetchmany()
+            while result:
+                results.append([ {'id': r[0], 'piece': r[5], 'part': r[2], 'offset': r[3], 'stem': r[4], 'path': r[5], 'piece_id': r[6]} for r in result ])
+                result = cursor.fetchmany()
+        return list(chain.from_iterable(results))
