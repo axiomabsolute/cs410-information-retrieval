@@ -62,6 +62,12 @@ This particular implementation uses a local SQLite database to store the pre-com
 
 One interesting side-effect of the chosen architecture is that the applciation may be trivially scaled by hosting multiple instances behind a load balancer. On insert, an arbitrary instance could be chosen to store the piece. On query, a scatter-gather approach could pass the query to each instance, and the final results streamed back to the load balancer for aggregation. This approach would enable parallel persistent storage IO on each instance. With some further modification, each instance could be configured to locally aggregate results before passing them on for final aggregation, effectively recreating the MapReduce pipeline.
 
+There are many musical aspects not captured by the current implementation, including:
+
+* Unpitched percussion
+* Tied notes
+* Repeated sections
+
 ## Examples
 
 The `./examples` directory contains a number of example music scores that can be added to the system for demo purposes. Each of these pieces is in the public domain and are available at [OpenMusicScore](http://openmusicscore.org/). To add these pieces to the index, run
