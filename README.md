@@ -4,7 +4,7 @@ FIRMS is an IR system designed for performing fuzzy searches against a corpus of
 
 ## Setup
 
-FIRMS can be set up manually by installing the following dependencies along with *Python 3+*:
+FIRMS can be set up manually by installing the following dependencies along with *Python 3.6+*:
 
 * music21
 * tabulate
@@ -17,7 +17,7 @@ To install locally with a given Python distribution:
 
 If using VirtualEnv:
 
-`virtualenv firms`
+`virtualenv -p python3.6 firms`
 `activate firms`
 `pip install music21 tabulate click scipy`
 
@@ -37,6 +37,14 @@ This will display a list of available commands. To see more detail about a parti
 
 > `python.exe firms_cli.py create --help`
 
+or for different options for adding pieces:
+
+> `python.exe firms_cli.py add --help`
+
+or to simply see what commands are available:
+
+> `python.exe firms_cli.py --help`
+
 At a broad level, the CLI offers the following features:
 
 1. Create a FIRMS index
@@ -44,19 +52,18 @@ At a broad level, the CLI offers the following features:
 3. Show general information about the stored data
 4. Query for a piece by providing an example via MusicXML or in tinynotation
 5. Show a piece as MusicXML
-5. Evaluate the system by randomly selecting sections from the music21 corpus and probabilistically introducing various types of errors
+6. Output the midi version of a piece
+7. Evaluate the system by randomly selecting sections from the music21 corpus and probabilistically introducing various types of errors
 
 ## Methods
 
 ## Architecture
 
-At a fundamental level, FIRMS operates primarily on the concept of *stemming*. Each piece is broken into a number of small sections called *snippets*. These snippets are passed through several stemmers, each of which produces one or more *stems* capturing a particular dimension of the snippet, for example the pitches, rhythms, or contour of the snippet. These stems are persisted in an index for efficient lookup.
+At a fundamental level, FIRMS operates primarily on the concept of *stemming*. Each piece is broken into a number of small sections called *snippets*. These snippets are passed through several stemmers, each of which produces one or more *stems* capturing a particular dimension of the snippet. For example, a stem may capture the pitches, rhythms, or contour of notes within snippet. These stems are persisted in an index for efficient lookup.
 
 When a user enters a query, the query is passed through the same process, first breaking it up into snippets, then passing each snippet through the same stemmers. The resulting stems are looked up in the pre-constructed index, returning a list of locations within each piece that match the given snippet. From there, the results may be aggregated using one of several scoring mechanisms.
 
-### Implementation
-
-This particular implementation uses a local SQLite database to store the pre-computed snippets, stems, and other information.
+This particular implementation uses a local SQLite database to store the pre-computed snippets, stems, and other information as a flat-file relational structure. Each stemmer type is an instance of the abstract `FirmIndex` class, which hides the details of the storage mechanism used.
 
 ### Scaling and Improvements
 
@@ -82,10 +89,36 @@ Replace `<tiny-query>` in the command above with the query corresponding to the 
 
 | Piece | Query |
 | ----- | ----- |
-| Amazing Grace | tinynotation: g8 c'2 e'8 c' e'2 d'4 c'2 a4 g2 g4 c'2 e'8 c' e'2 d'4 g'2  |
-| Entertainer |  |
-| March of the Wooden Soldiers |  |
-| Ode to Joy |  |
-| Korsakov Op 11 No 4 |  |
+| Amazing Grace | tinynotation: g8 c'2 e'8 c' e'2 d'4 c'2 a4 g2 g4 c'2 e'8 c' e'2 d'4 g'2. g'2 |
+| Entertainer | tinynotation: d''16 e'' c'' a' a' b' g'8 d'16 e' c' a a b g8 d16 e c A A B A A- G8" |
+| March of the Wooden Soldiers | tinynotation: d'8 r d' r b8. a#16 b8 r16 c'#16 d'8 r d' r b8. a#16 b8 r16 c'#16 |
+| Ode to Joy | tinynotation: b b c' d' d' c' b a g g a b b4. a8 a2 |
+| Deck the Halls | tinynotation: d'4. c'8 b4 a g a b g a8 b c' a b4. a8 g4 f# g2 |
 
-More information on tinynotation can be found [in the music21 documentation](http://web.mit.edu/music21/doc/moduleReference/moduleTinyNotation.html).
+> More information on tinynotation can be found [in the music21 documentation](http://web.mit.edu/music21/doc/moduleReference/moduleTinyNotation.html).
+
+In addition, an XML sample of "Ode to Joy" is provided in the `examples` directory, and can be used like so:
+
+> `python.exe firms_cli.py query xml examples/ode-to-joy.query.xml`
+
+### Examples with Errors
+
+The table below contains versions of the sample queries above with a different type of musical error included.
+
+| Piece | Query | Error Type |
+| ----- | ----- | ---------- |
+| Amazing Grace | tinynotation: g8 c'2 e'8 c' e'2 d'4 c'2 a4 g2 g4 g4 c'2 e'8 c' e'2 d'4 g'2. g'2 | Extra Note |
+| Entertainer | tinynotation: d''16 e'' c'' a' a' b' g' d' e' c' a a b g8 d16 e c A A B A A- G8" | Wrong Note |
+| March of the Wooden Soldiers | tinynotation: d'8 r d' b8. a#16 b8 r16 c'#16 d'8 r d' r b8. a#16 b8 r16 c'#16 | Missing Note |
+| Ode to Joy | tinynotation: d' d' e'- f' f' e'- d' c' b- b- c' d' d'4. c'8 c'2 | Transposed |
+| Deck the Halls | tinynotation: d'2. c'4 b2 a g a b g a4 b c' a b2. a4 g2 f# g1 | Stretched Rhythm |
+
+FIRMs is designed to be accomodate some level of error in the user input.
+
+## Evaluation
+
+In addition to the examples shown above, the FIRMs CLI includes a command for performing random probabilistic evaluation by sampling the pieces included in the index.
+
+To run an evaluation, first add some pieces to the corpus:
+
+> `python.exe firms_cli.py add composer bach`

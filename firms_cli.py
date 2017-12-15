@@ -156,14 +156,16 @@ def introduce_error(sample_stream, erate, transcription_error_types):
     print("No error added")
     return sample_stream
 
-@click.command()
-@click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
-def create(path):
-    """Create or overwrite a existing FIRMs index"""
-    SqlIRSystem(path, index_methods, grader_methods, [], True)
-
 def connect(path):
     return SqlIRSystem(path, index_methods, grader_methods, [], False)
+
+@click.command()
+@click.argument('path')
+def create(path):
+    """
+    Create or overwrite a existing FIRMs index at the provided path.
+    """
+    SqlIRSystem(path, index_methods, grader_methods, [], True)
 
 @click.group()
 def add():
@@ -173,19 +175,21 @@ def add():
     pass
 
 @click.command("piece")
-@click.option('--piecepath', help="Path to MusicXML file")
+@click.argument('piecepath')
 @click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
 def add_piece(piecepath, path):
-    """Add musicXML piece to firms index"""
+    """
+    Add musicXML file at the given path to firms index.
+    """
     add_piece_to_index(piecepath, path)
 
 @click.command("composer")
-@click.option('--composer', help="Composer's name to add")
+@click.argument('composer')
 @click.option('--filetype', help="Filters list of pieces by file type")
 @click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
 def add_composer(composer, filetype, path):
     """
-        Add all pieces by composer to firms index.
+        Add all pieces by given composer to firms index.
         Use `firms_cli.py composers` to see a list of composers.
     """
     sqlIRSystem = connect(path)
@@ -210,13 +214,14 @@ def add_directory(dirpath, path):
                 print("Skipping piece %s: only mxl and xml files supported" % filename)
 
 @click.command('music21')
+@click.option("--filetype", default=None, help="File extension to filter by, e.g. xml")
 @click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
-def add_music21(path):
+def add_music21(filetype, path):
     """
-    Add all pieces supplied in the default music21 corpus
+    Add all pieces supplied in the default music21 corpus.
     """
     sqlIRSystem = connect(path)
-    paths = corpus.getPaths()
+    paths = corpus.getPaths(filetype)
     num_pieces = len(paths)
     for idx,path in enumerate(paths):
         print("Adding piece %s of %s" % (idx, num_pieces))
@@ -321,9 +326,12 @@ def info_pieces(path, name, fname):
     print_pieces(list(result))
 
 @click.command("piece")
-@click.option("--id", help="ID of the piece to lookup")
+@click.argument("id")
 @click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
 def info_piece(id, path):
+    """
+    Lookup info for a piece by piece id
+    """
     sqlIrSystem = connect(path)
     results = sqlIrSystem.piece_by_id(id)
     print_pieces(results)
@@ -397,11 +405,11 @@ def evaluate(n, erate, minsize, maxsize, add_note_error, remove_note_error, repl
                 writer.writerow(row)
 
 @click.command("show")
-@click.option("--piece_path", help="Partial path to a piece to show")
+@click.argument("piece_path")
 @click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
 def show(piece_path, path):
     """
-    Retrieve a piece and open it as a MusicXML file.
+    Retrieve the given piece and open it as a MusicXML file.
 
     Warning: for some file types this may open up several browser tabs, which can be slow.
     """
