@@ -119,6 +119,39 @@ FIRMs is designed to be accomodate some level of error in the user input.
 
 In addition to the examples shown above, the FIRMs CLI includes a command for performing random probabilistic evaluation by sampling the pieces included in the index.
 
-To run an evaluation, first add some pieces to the corpus:
+To run an evaluation, first add some pieces to the corpus. Note, this command may take some time (~5 minutes on my laptop) as it adds over 400 pieces to the index.
 
-> `python.exe firms_cli.py add composer bach`
+> `python.exe firms_cli.py add composer bach --filetype xml`
+
+Then run an evaluation, specifying the number of samples to take. Note, this may take some time to complete (~15 minutes for my laptop). Try `--n 10` for a faster result (~1.5 min).
+
+> `python.exe firms_cli.py exaluate --n 100 --noprint True`
+
+This will take 100 samples of various lengths from the pieces available in the FIRMs index, perform a search based on the sample, and collect statistics on the average rank of the correct result. The `--noprint True` option skips printing the individual query results tables, while still printing the aggregate true-positive ranking statistic. For exmaple, the results on my run were as follows:
+
+'''
+Statistics for BM25
+        nobs: 100
+        minmax: (0, 7)
+        mean: 0.19
+        variance: 0.882727272727
+        skewness: 6.297878668097064
+        kurtosis: 40.1179051948864
+Statistics for LogWeightedSumGrader
+        nobs: 100
+        minmax: (0, 26)
+        mean: 0.42
+        variance: 6.85212121212
+        skewness: 9.47574350344239
+        kurtosis: 90.04614836416702
+'''
+
+This shows statistics on the ranks of true-positive results, broken down by the grading methods used. The field `nobs` represents the total number of observations. The `minmax` field shows the minimum and maximum ranks for true-positive results. The `mean`, `variance`, `skewness`, and `kurtosis` fields are statistics calculated based on the the ranks.
+
+While this is interesting, it is not overly representative of realistic queries. First, these snippets are randomly selected, whereas users are more likely to enter memorable melodic lines and themes. Second, users are likely to include errors in their entries, either due to transcription or due to ambiguities in how a particular piece is notated.
+
+Tackling the first issue is beyond the scope of this project, but the `evaluate` method includes a number of parameters for probabilistically introducing errors into the sample queries.
+
+> `python.exe firms_cli.py evaluate --n 100 --erate .2`
+
+The `--erate .2` parameter gives each snippet a 20% chance of including an error. The type of error chosen is controlled by the parameters `--transposition_error`, `--replace_note_error`, `--remove_note_error`, and `--add_note_error`. These are decimal values between [0, 1) and should add up to 1, thus representing a probability distribution. By default, they are each set to `.25` to present an equal probability.

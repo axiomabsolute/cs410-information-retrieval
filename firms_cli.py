@@ -153,6 +153,8 @@ def introduce_error(sample_stream, erate, transcription_error_types):
         if error_type_sample <= cumulative_error_type:
             print("Introducing error type %s" % tet.name)
             return tet.introduce_error(sample_stream) 
+    print("Error type sample: %s" % error_type_sample)
+    print("%s" % (transcription_error_types))
     print("No error added")
     return sample_stream
 
@@ -192,6 +194,7 @@ def add_composer(composer, filetype, path):
         Add all pieces by given composer to firms index.
         Use `firms_cli.py composers` to see a list of composers.
     """
+    start = time.time()
     sqlIRSystem = connect(path)
     paths = corpus.getComposer(composer, filetype)
     if len(paths) == 0:
@@ -200,11 +203,13 @@ def add_composer(composer, filetype, path):
         stream = corpus.parse(path)
         for piece in stream.recurse(classFilter=m21stream.Score, skipSelf=False):
             sqlIRSystem.add_piece(piece, path)
+    print("Ellapsed time: %s sec" % (time.time() - start))
 
 @click.command("dir")
 @click.argument('dirpath', type=click.Path(exists=True))
 @click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
 def add_directory(dirpath, path):
+    start = time.time()
     for root, dirs, files in os.walk(dirpath):
         for filename in files:
             if filename.endswith('.xml') or filename.endswith('.mxl'):
@@ -212,6 +217,7 @@ def add_directory(dirpath, path):
                 add_piece_to_index(os.path.join(root, filename), path)
             else:
                 print("Skipping piece %s: only mxl and xml files supported" % filename)
+    print("Ellapsed time: %s sec" % (time.time()))
 
 @click.command('music21')
 @click.option("--filetype", default=None, help="File extension to filter by, e.g. xml")
@@ -220,6 +226,7 @@ def add_music21(filetype, path):
     """
     Add all pieces supplied in the default music21 corpus.
     """
+    start = time.time()
     sqlIRSystem = connect(path)
     paths = corpus.getPaths(filetype)
     num_pieces = len(paths)
@@ -231,6 +238,7 @@ def add_music21(filetype, path):
                 sqlIRSystem.add_piece(piece, path)
         except:
             print("\tUnable to process piece %s" % path)
+    print("Ellapsed time: %s sec" % (time.time() - start))
 
 @click.command("tiny")
 @click.argument('query')
@@ -341,14 +349,15 @@ def info_piece(id, path):
 @click.option('--erate', default=0.0, help="Rate at which to simulate error")
 @click.option('--minsize', default=3, help="Minimum sample size (in measures)")
 @click.option('--maxsize', default=7, help="Maximum sample size (in measures)")
-@click.option('--add_note_error', default=0.0, help="Error by adding a random note in the snippet with a random note value")
-@click.option('--remove_note_error', default=0.0, help="Error by removing a random note")
-@click.option('--replace_note_error', default=0.0, help="Error by replacing a random note in the snippet with a random note value")
-@click.option('--transposition_error', default=0.0, help="Error by transposing the key of the snippet")
+@click.option('--add_note_error', default=0.25, help="Error by adding a random note in the snippet with a random note value")
+@click.option('--remove_note_error', default=0.25, help="Error by removing a random note")
+@click.option('--replace_note_error', default=0.25, help="Error by replacing a random note in the snippet with a random note value")
+@click.option('--transposition_error', default=0.25, help="Error by transposing the key of the snippet")
 @click.option('--output', default=None, help="Path to write results out to")
 @click.option('--noprint', default=False, help="Set to True to skip printing results")
+@click.option('--topk', default=None, help="If set, count all ranks above as 0")
 @click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
-def evaluate(n, erate, minsize, maxsize, add_note_error, remove_note_error, replace_note_error, transposition_error, output, noprint, path):
+def evaluate(n, erate, minsize, maxsize, add_note_error, remove_note_error, replace_note_error, transposition_error, output, noprint, topk, path):
     """
     Select random samples from index and run IR evaluation.
 
@@ -356,6 +365,7 @@ def evaluate(n, erate, minsize, maxsize, add_note_error, remove_note_error, repl
     With probability erate, introduce errors to the sampled snippets
         Select error using relative weights of each  of the --*error parameters
     """
+    start = time.time()
     print("Running evaluation with %s samples" % n)
     sqlIrSystem = connect(path)
     pieces = sqlIrSystem.pieces()
@@ -392,12 +402,16 @@ def evaluate(n, erate, minsize, maxsize, add_note_error, remove_note_error, repl
     tp_evaluations = [x for x in evaluations if x[3]]
     # Aggregate by [1] (grading method)
     tps_by_method = dict((k, list(g)) for k,g in groupby(sorted(tp_evaluations, key=lambda x: x[1]), lambda x: x[1]))
+    # If topk then count all ranks less than k as rank 0
+    if topk:
+        print("%s" % tps_by_method.items()[0][1][0])
     # Compute statistics on [5] (rank) and [6] (grade)
     aggregate_rank_results = {method: stats.describe([tp[4] for tp in tps]) for method,tps in tps_by_method.items()}
     for method, description in aggregate_rank_results.items():
         print("Statistics for %s" % method)
         for stat,val in zip(description._fields, description):
             print("\t%s: %s" % (stat,val))
+    print("Ellapsed: %s sec" % (time.time() - start))
     if output:
         with open(output + '/results.csv', 'w') as outf:
             writer = csv.writer(outf, lineterminator="\n")

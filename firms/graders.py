@@ -24,7 +24,7 @@ by_lookup_match_piece = by(by_lookup_match, by_piece_id)
 by_lookup_match_stem = by(by_lookup_match, by_stem)
 
 def bm25_idf(N, df):
-    assert(N > df)
+    assert(N >= df)
     return log( (N - df + 0.5) / (df + 0.5) )
 
 def bm25_tf(tf, k=1.2):
