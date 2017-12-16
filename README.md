@@ -72,15 +72,15 @@ Replace `<tiny-query>` in the command above with the query corresponding to the 
 
 | Piece | Query |
 | ----- | ----- |
-| Amazing Grace | tinynotation: g8 c'2 e'8 c' e'2 d'4 c'2 a4 g2 g4 c'2 e'8 c' e'2 d'4 g'2. g'2 |
-| Entertainer | tinynotation: d''16 e'' c'' a' a' b' g'8 d'16 e' c' a a b g8 d16 e c A A B A A- G8" |
+| Amazing Grace | tinynotation: g8 c'2 e'8 c' e'2 d'4 c'2 a4 g2 g4 c'2 e'8 c' e'2 d'4 g'2.~ g'2 e'4 g'4.~ e'8 g' e' c'2 g4 a4. c'8 c' a |
+| Entertainer | tinynotation: d''16 e'' c'' a' a' b' g'8 d'16 e' c' a a b g8 d16 e c A A B A A- G8 |
 | March of the Wooden Soldiers | tinynotation: d'8 r d' r b8. a#16 b8 r16 c'#16 d'8 r d' r b8. a#16 b8 r16 c'#16 |
 | Ode to Joy | tinynotation: b b c' d' d' c' b a g g a b b4. a8 a2 |
 | Deck the Halls | tinynotation: d'4. c'8 b4 a g a b g a8 b c' a b4. a8 g4 f# g2 |
 
-For example, to run the query for *Amazing Grace* from the table above, run:
+For example, to run the query for *Entertainer* from the table above, run:
 
-> `python.exe firms_cli.py query tiny "tinynotation: g8 c'2 e'8 c' e'2 d'4 c'2 a4 g2 g4 c'2 e'8 c' e'2 d'4 g'2"`
+> `python.exe firms_cli.py query tiny "tinynotation: d''16 e'' c'' a' a' b' g'8 d'16 e' c' a a b g8 d16 e c A A B A A- G8"`
 
 In addition, an XML sample of "Ode to Joy" is provided in the `examples` directory, and can be used like so:
 
@@ -167,3 +167,7 @@ There are many musical aspects not captured by the current implementation, inclu
 * Tied notes
 * Repeated sections
 * Non-traditional western music notation
+
+Failing to trace through repeated sections, in particular, causes issues for songs with a heavily repetative structure. The performance of FIRMS is highly dependent on how these types of songs are notated. Explicitly writing out repeated sections in a flat format greatly improves the performance. This can be seen in the *Amazing Grace* query in the "Examples" section above. This example contains the main theme of the song, but the BM25 method fails to score it highly because the repeated sections are ignored from the original score. The "Amazing Grace with Drums Explicit Repeat" example is an alternate engraving of the "Amazing Grace with Drums" score with repeated sections written out linearly, as they would be heard by an audience. This example scores *higher* than the original version because the repeats are effectively captured.
+
+The process of tracing repeats can be automated by converting from MusicXML to MIDI and back. This process trades the structural information (e.g. repeated sections, variations) to more accurately represent what a user would hear. 
