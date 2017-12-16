@@ -16,7 +16,7 @@ class SqlIRSystem(IRSystem):
     def makeEmptyIndex(self, indexfn, name):
         return SqlIndex(self.dbpath, [], indexfn, name, self.stemmer_ids[name])
 
-    def add_piece(self, piece, piece_path):
+    def add_piece(self, piece, piece_path, explicit_repeats=False):
         with sqlite3.connect(self.dbpath) as conn:
             cursor = conn.cursor()
             cursor.execute("PRAGMA synchronous = OFF")
@@ -28,7 +28,7 @@ class SqlIRSystem(IRSystem):
                 if not piece_id:
                     piece_id = self.ensure_piece(piece_path, piece_name, conn, cursor)
                 part_id = self.ensure_part(piece_id, part_name, conn, cursor)
-                snippets = list(get_snippets_for_part(part))
+                snippets = list(get_snippets_for_part(part, explicit_repeats))
                 snippet_ids = self.ensure_snippets(snippets, piece_id, part_id, conn, cursor)
                 for idx in self.indexes.values():
                     idx.add_snippets(snippets, snippet_ids, conn, cursor)

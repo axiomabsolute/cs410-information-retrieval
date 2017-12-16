@@ -84,11 +84,11 @@ class TranscriptionErrorType():
     def introduce_error(self, sample_stream):
         return self.efunction(sample_stream)
 
-def add_piece_to_index(piecepath, path):
+def add_piece_to_index(piecepath, path, explicit_repeats=False):
     sqlIrSystem = connect(path)
     stream = converter.parse(piecepath)
     for piece in stream.recurse(classFilter=m21stream.Score, skipSelf=False):
-        sqlIrSystem.add_piece(piece, piecepath)
+        sqlIrSystem.add_piece(piece, piecepath, explicit_repeats)
 
 def clean_file_name(filename):
     return ''.join([i for i in filename if i in valid_chars])
@@ -179,19 +179,23 @@ def add():
 @click.command("piece")
 @click.argument('piecepath')
 @click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
-def add_piece(piecepath, path):
+@click.option('--explicit_repeats', default=False, help="Convert to midi and back to expand repeats. Very slow")
+def add_piece(piecepath, path, explicit_repeats):
     """
     Add a musicXML (.xml or .mxl) file.
 
     The piecepath argument is a fully qualified path to the file.
     """
-    add_piece_to_index(piecepath, path)
+    start = time.time()
+    add_piece_to_index(piecepath, path, explicit_repeats)
+    print("Ellapsed: %s sec" % (time.time() - start))
 
 @click.command("composer")
 @click.argument('composer')
-@click.option('--filetype', help="Filters list of pieces by file type")
+@click.option('--filetype', default=None, help="Filters list of pieces by file type")
 @click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
-def add_composer(composer, filetype, path):
+@click.option('--explicit_repeats', default=False, help="Convert to midi and back to expand repeats. Very slow")
+def add_composer(composer, filetype, path, explicit_repeats):
     """
         Music21 corpus pieces by composer.
         Use `firms_cli.py composers` to see a list of composers.
@@ -207,13 +211,14 @@ def add_composer(composer, filetype, path):
         print("\tProcessing piece %s: %s" % (idx, path))
         stream = corpus.parse(path)
         for piece in stream.recurse(classFilter=m21stream.Score, skipSelf=False):
-            sqlIRSystem.add_piece(piece, path)
+            sqlIRSystem.add_piece(piece, path, explicit_repeats)
     print("Ellapsed time: %s sec" % (time.time() - start))
 
 @click.command("dir")
 @click.argument('dirpath', type=click.Path(exists=True))
 @click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
-def add_directory(dirpath, path):
+@click.option('--explicit_repeats', default=False, help="Convert to midi and back to expand repeats. Very slow")
+def add_directory(dirpath, path, explicit_repeats):
     """
     All .xml and .mxl files in given directory.
 
@@ -224,15 +229,16 @@ def add_directory(dirpath, path):
         for filename in files:
             if (filename.endswith('.xml') and not filename.endswith('.query.xml')) or filename.endswith('.mxl'):
                 print("Adding piece %s" % (filename))
-                add_piece_to_index(os.path.join(root, filename), path)
+                add_piece_to_index(os.path.join(root, filename), path, explicit_repeats)
             else:
                 print("Skipping piece %s: only mxl and xml files supported" % filename)
-    print("Ellapsed time: %s sec" % (time.time()))
+    print("Ellapsed time: %s sec" % (time.time() - start))
 
 @click.command('music21')
 @click.option("--filetype", default=None, help="File extension to filter by, e.g. xml")
 @click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
-def add_music21(filetype, path):
+@click.option('--explicit_repeats', default=False, help="Convert to midi and back to expand repeats. Very slow")
+def add_music21(filetype, path, explicit_repeats):
     """
     All pieces from music21 corpus.
 
@@ -247,7 +253,7 @@ def add_music21(filetype, path):
         try:
             stream = corpus.parse(path)
             for piece in stream.recurse(classFilter=m21stream.Score, skipSelf=False):
-                sqlIRSystem.add_piece(piece, path)
+                sqlIRSystem.add_piece(piece, path, explicit_repeats)
         except:
             print("\tUnable to process piece %s" % path)
     print("Ellapsed time: %s sec" % (time.time() - start))
