@@ -172,7 +172,7 @@ def create(path):
 @click.group()
 def add():
     """
-    Group of commands for adding pieces to the FIRMS index
+    Add one or more pieces to the index
     """
     pass
 
@@ -181,7 +181,9 @@ def add():
 @click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
 def add_piece(piecepath, path):
     """
-    Add musicXML file at the given path to firms index.
+    Add a musicXML (.xml or .mxl) file.
+
+    The piecepath argument is a fully qualified path to the file.
     """
     add_piece_to_index(piecepath, path)
 
@@ -191,7 +193,7 @@ def add_piece(piecepath, path):
 @click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
 def add_composer(composer, filetype, path):
     """
-        Add all pieces by given composer to firms index.
+        Music21 corpus pieces by composer.
         Use `firms_cli.py composers` to see a list of composers.
     """
     start = time.time()
@@ -199,7 +201,10 @@ def add_composer(composer, filetype, path):
     paths = corpus.getComposer(composer, filetype)
     if len(paths) == 0:
         print("Error: no pieces found matching composer %s" % composer)
-    for path in paths:
+    else:
+        print("Found %s pieces" % (len(paths)))
+    for idx,path in enumerate(paths):
+        print("\tProcessing piece %s: %s" % (idx, path))
         stream = corpus.parse(path)
         for piece in stream.recurse(classFilter=m21stream.Score, skipSelf=False):
             sqlIRSystem.add_piece(piece, path)
@@ -209,10 +214,15 @@ def add_composer(composer, filetype, path):
 @click.argument('dirpath', type=click.Path(exists=True))
 @click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
 def add_directory(dirpath, path):
+    """
+    All .xml and .mxl files in given directory.
+
+    Note: this method skips files ending in `.query.xml`, which are assumed to be user queries
+    """
     start = time.time()
     for root, dirs, files in os.walk(dirpath):
         for filename in files:
-            if filename.endswith('.xml') or filename.endswith('.mxl'):
+            if (filename.endswith('.xml') and not filename.endswith('.query.xml')) or filename.endswith('.mxl'):
                 print("Adding piece %s" % (filename))
                 add_piece_to_index(os.path.join(root, filename), path)
             else:
@@ -224,7 +234,9 @@ def add_directory(dirpath, path):
 @click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
 def add_music21(filetype, path):
     """
-    Add all pieces supplied in the default music21 corpus.
+    All pieces from music21 corpus.
+
+    Note, this results in over four thousand pieces and may take a significant amount of time.
     """
     start = time.time()
     sqlIRSystem = connect(path)

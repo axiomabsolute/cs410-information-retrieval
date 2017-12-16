@@ -38,13 +38,13 @@ This will display a list of available commands. To see more detail about a parti
 
 > `python.exe firms_cli.py create --help`
 
-or for different options for adding pieces:
+or for different options for adding pieces to the index:
 
 > `python.exe firms_cli.py add --help`
 
-or to simply see what commands are available:
+Many commands have subcommands supporting related operations. For instance, to add all MusicXML pieces from a directory, use the `add dir` subcommand:
 
-> `python.exe firms_cli.py --help`
+> `python.exe firms_cli.py add dir /path/to/directory`
 
 At a broad level, the CLI offers the following features:
 
@@ -56,26 +56,6 @@ At a broad level, the CLI offers the following features:
 6. Output the midi version of a piece
 7. Evaluate the system by randomly selecting sections from the music21 corpus and probabilistically introducing various types of errors
 
-## Methods
-
-## Architecture
-
-At a fundamental level, FIRMS operates primarily on the concept of *stemming*. Each piece is broken into a number of small sections called *snippets*. These snippets are passed through several stemmers, each of which produces one or more *stems* capturing a particular dimension of the snippet. For example, a stem may capture the pitches, rhythms, or contour of notes within snippet. These stems are persisted in an index for efficient lookup.
-
-When a user enters a query, the query is passed through the same process, first breaking it up into snippets, then passing each snippet through the same stemmers. The resulting stems are looked up in the pre-constructed index, returning a list of locations within each piece that match the given snippet. From there, the results may be aggregated using one of several scoring mechanisms.
-
-This particular implementation uses a local SQLite database to store the pre-computed snippets, stems, and other information as a flat-file relational structure. Each stemmer type is an instance of the abstract `FirmIndex` class, which hides the details of the storage mechanism used.
-
-### Scaling and Improvements
-
-One interesting side-effect of the chosen architecture is that the applciation may be trivially scaled by hosting multiple instances behind a load balancer. On insert, an arbitrary instance could be chosen to store the piece. On query, a scatter-gather approach could pass the query to each instance, and the final results streamed back to the load balancer for aggregation. This approach would enable parallel persistent storage IO on each instance. With some further modification, each instance could be configured to locally aggregate results before passing them on for final aggregation, effectively recreating the MapReduce pipeline.
-
-There are many musical aspects not captured by the current implementation, including:
-
-* Unpitched percussion
-* Tied notes
-* Repeated sections
-
 ## Examples
 
 The `./examples` directory contains a number of example music scores that can be added to the system for demo purposes. Each of these pieces is in the public domain and are available at [OpenMusicScore](http://openmusicscore.org/). To add these pieces to the index, run
@@ -86,7 +66,9 @@ Each piece can be queried using the CLI method:
 
 > `python.exe firms_cli.py query tiny <tiny-query>`
 
-Replace `<tiny-query>` in the command above with the query corresponding to the piece in the table below:
+Replace `<tiny-query>` in the command above with the query corresponding to the piece in the table below. This query format is a simple ASCII-based notation for representing small snippets of music using standard western notation.
+
+> More information on tinynotation can be found [in the music21 documentation](http://web.mit.edu/music21/doc/moduleReference/moduleTinyNotation.html).
 
 | Piece | Query |
 | ----- | ----- |
@@ -96,7 +78,9 @@ Replace `<tiny-query>` in the command above with the query corresponding to the 
 | Ode to Joy | tinynotation: b b c' d' d' c' b a g g a b b4. a8 a2 |
 | Deck the Halls | tinynotation: d'4. c'8 b4 a g a b g a8 b c' a b4. a8 g4 f# g2 |
 
-> More information on tinynotation can be found [in the music21 documentation](http://web.mit.edu/music21/doc/moduleReference/moduleTinyNotation.html).
+For example, to run the query for *Amazing Grace* from the table above, run:
+
+> `python.exe firms_cli.py query tiny "tinynotation: g8 c'2 e'8 c' e'2 d'4 c'2 a4 g2 g4 c'2 e'8 c' e'2 d'4 g'2"`
 
 In addition, an XML sample of "Ode to Joy" is provided in the `examples` directory, and can be used like so:
 
@@ -162,3 +146,24 @@ Often we're more concerned with whether the true-positive result is within the t
 > `python.exe firms_cli.py evaluate --n 100 --topk 10`
 
 This allows the system to be a little more flexible defining what it considers to be a correct result.
+
+## Architecture
+
+At a fundamental level, FIRMS operates primarily on the concept of *stemming*. Each piece is broken into a number of small sections called *snippets*. These snippets are passed through several stemmers, each of which produces one or more *stems* capturing a particular dimension of the snippet. For example, a stem may capture the pitches, rhythms, or contour of notes within snippet. These stems are persisted in an index for efficient lookup.
+
+When a user enters a query, the query is passed through the same process, first breaking it up into snippets, then passing each snippet through the same stemmers. The resulting stems are looked up in the pre-constructed index, returning a list of locations within each piece that match the given snippet. From there, the results may be aggregated using one of several scoring mechanisms.
+
+The implementation provides two built-in scoring mechanisms. The first is a log weighted sum of counts. The matching stems for each stemmer type are aggregated by taking the natural logarithm of the count, then multiplied by a per-stemmer weight value, and finally summed together to form the final grade. The second is a standard Okapi BM25 implementation without document length normalization. Two potential measures of document length which may improve the accuracy of this method are the total number of measures for a piece or the total number of snippets in a piece. A measure based approach ignores the density of notes within a measure: a measure with a single whole note would be weighted the same as a measure with a melodic line of sixteenth notes. The snippet count approach would disproportionally impact pieces with many parts or voices, as each part and voice acts as a multiplier for the number of snippets contained in a piece. For these reasons, document length normalization was not inlcuded for this project.
+
+This particular implementation uses a local SQLite database to store the pre-computed snippets, stems, and other information as a flat-file relational structure. Each stemmer type is an instance of the abstract `FirmIndex` class, which hides the details of the storage mechanism used. This allows the underlying SQLite implementation to be swapped out for a more efficient storage mechanism without impacting the rest of the system.
+
+### Scaling and Improvements
+
+One interesting side-effect of the chosen architecture is that the applciation may be trivially scaled by hosting multiple instances behind a load balancer. On insert, an arbitrary instance could be chosen to store the piece. On query, a scatter-gather approach could pass the query to each instance, and the final results streamed back to the load balancer for aggregation. This approach would enable parallel persistent storage IO on each instance. With some further modification, each instance could be configured to locally aggregate results before passing them on for final aggregation.
+
+There are many musical aspects not captured by the current implementation, including:
+
+* Unpitched notes, e.g. percussion
+* Tied notes
+* Repeated sections
+* Non-traditional western music notation
