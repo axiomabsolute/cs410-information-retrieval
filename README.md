@@ -13,19 +13,20 @@ FIRMS can be set up manually by installing the following dependencies along with
 
 To install locally with a given Python distribution:
 
-`path/to/pip install music21 tabulate click scipy`
+> `path/to/pip install music21 tabulate click scipy`
 
 If using VirtualEnv:
 
-`virtualenv -p python3.6 firms`
-`activate firms`
-`pip install music21 tabulate click scipy`
+> `virtualenv -p python3.6 firms`
+> `activate firms`
+>> Note, on Unix-like systems, `source activate firms`
+> `pip install music21 tabulate click scipy`
 
 Using the Anaconda python distribution:
 
-`conda create -n firms python=3`
-`activate firms`
-`pip install music21 tabulate click scipy`
+> `conda create -n firms python=3`
+> `activate firms`
+> `pip install music21 tabulate click scipy`
 
 ## Usage
 
