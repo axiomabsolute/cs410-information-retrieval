@@ -355,7 +355,7 @@ def info_piece(id, path):
 @click.option('--transposition_error', default=0.25, help="Error by transposing the key of the snippet")
 @click.option('--output', default=None, help="Path to write results out to")
 @click.option('--noprint', default=False, help="Set to True to skip printing results")
-@click.option('--topk', default=None, help="If set, count all ranks above as 0")
+@click.option('--topk', type=click.INT, default=None, help="If set, count all ranks above as 0")
 @click.option('--path', default=DEFAULT_DB_PATH, help="Path to sqlite DB file; defaults to `./firms.sqlite.db`")
 def evaluate(n, erate, minsize, maxsize, add_note_error, remove_note_error, replace_note_error, transposition_error, output, noprint, topk, path):
     """
@@ -402,11 +402,13 @@ def evaluate(n, erate, minsize, maxsize, add_note_error, remove_note_error, repl
     tp_evaluations = [x for x in evaluations if x[3]]
     # Aggregate by [1] (grading method)
     tps_by_method = dict((k, list(g)) for k,g in groupby(sorted(tp_evaluations, key=lambda x: x[1]), lambda x: x[1]))
-    # If topk then count all ranks less than k as rank 0
-    if topk:
-        print("%s" % tps_by_method.items()[0][1][0])
     # Compute statistics on [5] (rank) and [6] (grade)
-    aggregate_rank_results = {method: stats.describe([tp[4] for tp in tps]) for method,tps in tps_by_method.items()}
+    # If topk then count all ranks less than k as rank 0
+    aggregate_rank_results = None
+    if topk:
+        aggregate_rank_results = {method: stats.describe([tp[4] if tp[4] > topk else 0 for tp in tps]) for method,tps in tps_by_method.items()}
+    else:
+        aggregate_rank_results = {method: stats.describe([tp[4] for tp in tps]) for method,tps in tps_by_method.items()}
     for method, description in aggregate_rank_results.items():
         print("Statistics for %s" % method)
         for stat,val in zip(description._fields, description):

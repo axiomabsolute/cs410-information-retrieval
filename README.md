@@ -155,3 +155,9 @@ Tackling the first issue is beyond the scope of this project, but the `evaluate`
 > `python.exe firms_cli.py evaluate --n 100 --erate .2`
 
 The `--erate .2` parameter gives each snippet a 20% chance of including an error. The type of error chosen is controlled by the parameters `--transposition_error`, `--replace_note_error`, `--remove_note_error`, and `--add_note_error`. These are decimal values between [0, 1) and should add up to 1, thus representing a probability distribution. By default, they are each set to `.25` to present an equal probability.
+
+Often we're more concerned with whether the true-positive result is within the top K results returned, such as the first page of a search engine. To quantify this, we can configure the evaluation scorer to treat all results below K as a 0, while maintaining the rank of results beyond that.
+
+> `python.exe firms_cli.py evaluate --n 100 --topk 10`
+
+This allows the system to be a little more flexible defining what it considers to be a correct result.
