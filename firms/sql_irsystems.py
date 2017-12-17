@@ -96,7 +96,7 @@ class SqlIRSystem(IRSystem):
         Ensure the given stemmers are included in the stemmers table
             :param stemmers: Stemmers to verify
             :param conn: Connection to sqlite instance
-        """   
+        """
         cursor = conn.cursor()
         stemmer_ids = {}
         for stemmer_name in stemmers.keys():
@@ -131,6 +131,13 @@ class SqlIRSystem(IRSystem):
 
     @staticmethod
     def ensure_part(piece_id, part_name, conn, cursor):
+        """
+        Ensure given part is included
+            :param piece_id: Id of source piece
+            :param part_name: Name of the part
+            :param conn: Connection to sqlite instance
+            :param cursor: Cursor to use
+        """
         cursor.execute("SELECT id FROM parts WHERE piece_id=? AND name=? LIMIT 1", (piece_id, part_name))
         results = cursor.fetchall()
         if results:
@@ -141,6 +148,14 @@ class SqlIRSystem(IRSystem):
 
     @staticmethod
     def ensure_snippet(snippet, piece_id, part_id, conn, cursor):
+        """
+        Ensure the given snippet is included
+            :param snippet: Snippet instance to store
+            :param piece_id: Id of source piece
+            :param part_id: Id of source part
+            :param conn: Connection to sqlite instance
+            :param cursor: Cursor to use
+        """
         cursor.execute("SELECT id FROM snippets WHERE piece_id=? AND part_id=? AND offset=?", (piece_id, part_id, snippet.offset))
         results = cursor.fetchall()
         if results:
@@ -151,13 +166,25 @@ class SqlIRSystem(IRSystem):
 
     @staticmethod
     def ensure_snippets(snippets, piece_id, part_id, conn, cursor):
-        values = [ (piece_id, part_id, snippet.offset) for snippet in snippets ]
+        """
+        Ensure several snippets from the same piece and part are included
+            :param snippets: List of snippets to include
+            :param piece_id: Id of source piece
+            :param part_id: Id of source part
+            :param conn: Connection to sqlite instance
+            :param cursor: Cursor to use
+        """
+        values = [(piece_id, part_id, snippet.offset) for snippet in snippets]
         cursor.executemany("INSERT OR IGNORE INTO snippets (piece_id, part_id, offset) VALUES (?, ?, ?)", values)
         conn.commit()
         cursor.execute("SELECT id FROM snippets WHERE piece_id=? AND part_id=?", (piece_id, part_id))
         return [r[0] for r in cursor.fetchall()]
 
     def get_number_of_pieces(self):
+        """
+        Get the total number of pieces
+            :param self:
+        """
         conn = sqlite3.connect(self.dbpath)
         cursor = conn.cursor()
         cursor.execute("""SELECT count(*) FROM pieces""")
@@ -166,7 +193,7 @@ class SqlIRSystem(IRSystem):
         return result[0]
 
     def lookup(self, snippet):
-        conn = sqlite3.connect(self.dbpath) 
+        conn = sqlite3.connect(self.dbpath)
         cursor = conn.cursor()
         return super().lookup(snippet, conn, cursor)
 
@@ -183,27 +210,48 @@ class SqlIRSystem(IRSystem):
         return result[0]
 
     def piece_by_id(self, piece_id):
+        """
+        Lookup a single piece by ID
+            :param self:
+            :param piece_id: Id of the piece to retrieve
+        """
         conn = sqlite3.connect(self.dbpath)
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM pieces WHERE pieces.id=?", (piece_id, ))
         return cursor.fetchall()
 
     def pieces(self):
+        """
+        Return basic information on all pieces
+            :param self:
+        """
         conn = sqlite3.connect(self.dbpath)
         cursor = conn.cursor()
         cursor.execute("SELECT name, path, id FROM pieces")
         return cursor.fetchall()
 
     def stemmers(self):
+        """
+        Return basic information on all stemmers
+            :param self:
+        """
         conn = sqlite3.connect(self.dbpath)
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM stemmers")
         return cursor.fetchall()
 
     def graders(self):
+        """
+        Return a sequence of the grading methods supported
+            :param self:
+        """
         return self.grader_methods.keys()
 
     def info(self):
+        """
+        Return general information about the data in FIRMS instance
+            :param self:
+        """
         tables = ["entries", "pieces", "parts", "snippets", "stems", "stemmers"]
         results = {}
         conn = sqlite3.connect(self.dbpath)

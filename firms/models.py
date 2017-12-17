@@ -216,7 +216,7 @@ class FirmIndex(metaclass=ABCMeta):
     A single stemming method
         :param metaclass=ABCMeta: Abscract MetaClass
     """
-    def __init__(self, snippets, keyfn, name = ""):
+    def __init__(self, snippets, keyfn, name=""):
         """
         Constructor
             :param self:

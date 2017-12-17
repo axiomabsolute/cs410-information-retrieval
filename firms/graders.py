@@ -1,9 +1,18 @@
+"""
+Implementations of FIRMS Grader abstract class
+"""
+
 from itertools import groupby
 from operator import attrgetter, itemgetter
 from math import log
 from firms.models import Grader, GraderResult
 
 def by(*getters):
+    """
+    Chain getters. by(a, b) means
+    "Get a, then get b from the result of a"
+        :param *getters: Getters to chain
+    """
     def _by(item):
         result = item
         for getter in getters:
@@ -23,43 +32,58 @@ by_lookup_match_piece = by(by_lookup_match, by_piece_id)
 by_lookup_match_stem = by(by_lookup_match, by_stem)
 
 def bm25_idf(N, df):
+    """
+    Compute BM25 inverse document frequency
+        :param N: Number of documents
+        :param df: Document frequency
+    """
     assert(N >= df)
     return log( (N - df + 0.5) / (df + 0.5) )
 
 def bm25_tf(tf, k=1.2):
+    """
+    Compute BM25 Term frequency, without document length normalization
+        :param tf: Term frequency
+        :param k=1.2: K parameter
+    """
     return (tf * (k + 1) )/(tf + k)
 
-def bm25_factory():
-    def bm25(matches, number_of_pieces):
-        # Given a list of (stemmer, snippet) pairs
-        # Compute DF - Dictionary from stem -> piece count
-        dfs = {}
-        for stem, stem_matches in groupby(sorted(matches, key=by_lookup_match_stem), by_lookup_match_stem):
-            dfs[stem] = len(set(map(by_lookup_match_piece, stem_matches)))
-        # For each piece compute TF scores - Dictionary from piece to Dictionary from stem to count
-        tfs = {}
-        for piece, piece_matches in groupby(sorted(matches, key=by_lookup_match_piece), by_lookup_match_piece):
-            tfs[piece] = {}
-            for stem, stem_matches in groupby(sorted(piece_matches, key=by_lookup_match_stem), by_lookup_match_stem):
-                tfs[piece][stem] = len(list(stem_matches))
-        # Compute TF-IDF score
-        return [ GraderResult(piece=piece, grade=sum([bm25_tf(cnt) * bm25_idf(number_of_pieces, dfs[stem]) for stem,cnt in piece_tfs.items() ]), meta={}) for piece, piece_tfs in tfs.items()]
-    return bm25
-
 def update_with(d1, d2, aggregator, zero):
-    for k,v in d2.items():
+    """
+    Fold the right dictionary into the left.
+    This is a mutating function
+        :param d1: Dictionary to fold into
+        :param d2: Dictionary draw updates from
+        :param aggregator: Definition of how to update d1
+        :param zero: What to do if a key in d2 isn't in d1
+    """
+    for k, v in d2.items():
         if k not in d1:
             d1[k] = zero()
         d1[k] = aggregator(d1[k], v)
     return d1
 
 def update_with_union(d1, d2):
+    """
+    Update dictionary with sets as values by unioning
+        :param d1: Set to fold into
+        :param d2: Set to fold from
+    """
     return update_with(d1,d2, lambda a,b: a.union(b), set)
 
 def update_with_sum(d1, d2):
+    """
+    Update dictionary with numeric values by summing
+        :param d1: Dictionary to fold into
+        :param d2: Dictionary to fold from
+    """
     return update_with(d1, d2, lambda a,b: a+b, lambda: 0)
 
 class Bm25Grader(Grader):
+    """
+    Implementation of FIRMS grader as Oakpi BM25 without document length normalization
+        :param Grader: FIRMS Grader abstract class
+    """
     def zero(self):
         self.tfs = {}
         self.dfs = {}
@@ -90,6 +114,10 @@ class Bm25Grader(Grader):
             update_with_sum(self.tfs[piece], piece_stems)
 
 class LogWeightedSumGrader(Grader):
+    """
+    Implementation of FIRMS Grader as a weighted sum of log counts
+        :param Grader: FIRMS Grader abstract class
+    """
     def __init__(self, weights):
         self.weights = weights
         super().__init__()
