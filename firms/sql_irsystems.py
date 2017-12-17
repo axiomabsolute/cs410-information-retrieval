@@ -1,19 +1,26 @@
-from firms.models import IRSystem, FirmIndex, get_part_details, get_snippets_for_part, print_timing
-import sqlite3
+"""
+A Sqlite3 based implementation of FIRMS
+"""
+
 from itertools import chain
+import sqlite3
+
+from firms.models import IRSystem, FirmIndex, get_part_details, get_snippets_for_part
 
 class SqlIRSystem(IRSystem):
-
-    def __init__(self, dbpath, index_methods, graders = None, piece_paths = [], rebuild = True):
-        # Ensure pieces, stemmers, snippets, parts, stems, and entries tables exist
-        # Add each index method to stemmers table
+    """
+    A Sqlite3 based implementation of IRSystem
+        :param IRSystem:
+    """
+    def __init__(self, dbpath, index_methods, graders=None, piece_paths=None, rebuild=True):
+        piece_paths = piece_paths or []
         self.dbpath = dbpath
         with sqlite3.connect(self.dbpath) as conn:
             self.ensure_db(conn)
             self.stemmer_ids = self.ensure_stemmers(index_methods, conn)
         super().__init__(index_methods, graders, piece_paths, rebuild)
 
-    def makeEmptyIndex(self, indexfn, name):
+    def make_empty_index(self, indexfn, name):
         return SqlIndex(self.dbpath, [], indexfn, name, self.stemmer_ids[name])
 
     def add_piece(self, piece, piece_path, explicit_repeats=False):
@@ -34,7 +41,12 @@ class SqlIRSystem(IRSystem):
                     idx.add_snippets(snippets, snippet_ids, conn, cursor)
             cursor.close()
 
-    def ensure_db(self, conn):
+    @staticmethod
+    def ensure_db(conn):
+        """
+        Ensure base tables setup
+            :param conn: Connection to sqlite instance
+        """
         cursor = conn.cursor()
         cursor.execute("""CREATE TABLE IF NOT EXISTS pieces (id INTEGER PRIMARY KEY ASC,
                                                 path TEXT NOT NULL,
@@ -78,7 +90,13 @@ class SqlIRSystem(IRSystem):
         cursor.execute("""CREATE INDEX IF NOT EXISTS stem_stem_idx ON stems(stem)""")
         cursor.execute("""CREATE INDEX IF NOT EXISTS entry_stem_idx ON entries(stem_id)""")
 
-    def ensure_stemmers(self, stemmers, conn):
+    @staticmethod
+    def ensure_stemmers(stemmers, conn):
+        """
+        Ensure the given stemmers are included in the stemmers table
+            :param stemmers: Stemmers to verify
+            :param conn: Connection to sqlite instance
+        """   
         cursor = conn.cursor()
         stemmer_ids = {}
         for stemmer_name in stemmers.keys():
@@ -90,20 +108,29 @@ class SqlIRSystem(IRSystem):
         conn.commit()
         return stemmer_ids
 
-    def ensure_piece(self, piece_path, piece_name, conn, cursor):
+    @staticmethod
+    def ensure_piece(piece_path, piece_name, conn, cursor):
+        """
+        Ensure the given piece is included
+            :param piece_path: Path to the piece
+            :param piece_name: Name of the piece
+            :param conn: Connection to sqlite instance
+            :param cursor: Cursor to use
+        """
         cursor.execute("SELECT id FROM pieces WHERE path=? AND name=? LIMIT 1",
-            (piece_path, piece_name)
-        )
+                       (piece_path, piece_name)
+                      )
         results = cursor.fetchall()
         if results:
             return results[0][0]
         cursor.execute("INSERT INTO pieces (path, name) VALUES (?, ?)",
-            (piece_path, piece_name)
-        )
+                       (piece_path, piece_name)
+                      )
         conn.commit()
         return cursor.lastrowid
 
-    def ensure_part(self, piece_id, part_name, conn, cursor):
+    @staticmethod
+    def ensure_part(piece_id, part_name, conn, cursor):
         cursor.execute("SELECT id FROM parts WHERE piece_id=? AND name=? LIMIT 1", (piece_id, part_name))
         results = cursor.fetchall()
         if results:
@@ -112,7 +139,8 @@ class SqlIRSystem(IRSystem):
         conn.commit()
         return cursor.lastrowid
 
-    def ensure_snippet(self, snippet, piece_id, part_id, conn, cursor):
+    @staticmethod
+    def ensure_snippet(snippet, piece_id, part_id, conn, cursor):
         cursor.execute("SELECT id FROM snippets WHERE piece_id=? AND part_id=? AND offset=?", (piece_id, part_id, snippet.offset))
         results = cursor.fetchall()
         if results:
@@ -121,7 +149,8 @@ class SqlIRSystem(IRSystem):
         conn.commit()
         return cursor.lastrowid
 
-    def ensure_snippets(self, snippets, piece_id, part_id, conn, cursor):
+    @staticmethod
+    def ensure_snippets(snippets, piece_id, part_id, conn, cursor):
         values = [ (piece_id, part_id, snippet.offset) for snippet in snippets ]
         cursor.executemany("INSERT OR IGNORE INTO snippets (piece_id, part_id, offset) VALUES (?, ?, ?)", values)
         conn.commit()
@@ -153,10 +182,10 @@ class SqlIRSystem(IRSystem):
         result = cursor.fetchone()
         return result[0]
 
-    def piece_by_id(self, id):
+    def piece_by_id(self, piece_id):
         conn = sqlite3.connect(self.dbpath)
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM pieces WHERE pieces.id=?", (id, ))
+        cursor.execute("SELECT * FROM pieces WHERE pieces.id=?", (piece_id, ))
         return cursor.fetchall()
 
     def pieces(self):

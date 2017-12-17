@@ -1,8 +1,7 @@
 from itertools import groupby
 from operator import attrgetter, itemgetter
-from abc import ABCMeta, abstractmethod
 from math import log
-from firms.models import flatten, GraderResult
+from firms.models import Grader, GraderResult
 
 def by(*getters):
     def _by(item):
@@ -55,35 +54,10 @@ def update_with(d1, d2, aggregator, zero):
     return d1
 
 def update_with_union(d1, d2):
-    return update_with(d1,d2, lambda a,b: a.union(b), lambda: set())
+    return update_with(d1,d2, lambda a,b: a.union(b), set)
 
 def update_with_sum(d1, d2):
     return update_with(d1, d2, lambda a,b: a+b, lambda: 0)
-
-class Grader(metaclass=ABCMeta):
-    def __init__(self):
-        self.zero()
-
-    @abstractmethod
-    def zero(self):
-        """
-        Reset the grader's aggregator
-        """
-        pass
-
-    @abstractmethod
-    def grade(self, number_of_pieces):
-        """
-        Compute a grade based on the grader's current aggregator state
-        """
-        pass
-
-    @abstractmethod
-    def aggregate(self, matches):
-        """
-        Add a set of results to the grader's aggregator
-        """
-        pass
 
 class Bm25Grader(Grader):
     def zero(self):
@@ -133,10 +107,10 @@ class LogWeightedSumGrader(Grader):
         return grades
     
     def aggregate(self, matches):
-       for piece, piece_matches in groupby(sorted(matches, key=by_lookup_match_piece), by_lookup_match_piece):
-           if piece not in self.stemmer_counts_by_piece:
-               self.stemmer_counts_by_piece[piece] = {}
-           for stemmer, stemmer_matches in groupby(sorted(piece_matches, key=by_stemmer), by_stemmer):
-               if stemmer not in self.stemmer_counts_by_piece[piece]:
-                   self.stemmer_counts_by_piece[piece][stemmer] = 0
-               self.stemmer_counts_by_piece[piece][stemmer] = self.stemmer_counts_by_piece[piece][stemmer] + len(list(stemmer_matches))
+        for piece, piece_matches in groupby(sorted(matches, key=by_lookup_match_piece), by_lookup_match_piece):
+            if piece not in self.stemmer_counts_by_piece:
+                self.stemmer_counts_by_piece[piece] = {}
+            for stemmer, stemmer_matches in groupby(sorted(piece_matches, key=by_stemmer), by_stemmer):
+                if stemmer not in self.stemmer_counts_by_piece[piece]:
+                    self.stemmer_counts_by_piece[piece][stemmer] = 0
+                self.stemmer_counts_by_piece[piece][stemmer] = self.stemmer_counts_by_piece[piece][stemmer] + len(list(stemmer_matches))
