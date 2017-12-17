@@ -32,6 +32,12 @@ def get_number_of_voices(gnote):
     return len(gnote.pitches)
 
 def split_voices(lead, current):
+    """
+    Given two sequential notes, if the lead note contains more voices than current, then duplicate
+    the notes in current to match lead, producing continuous voice lines
+        :param lead: Leading note
+        :param current: Current node
+    """
     num_lead = get_number_of_voices(lead)
     num_current = get_number_of_voices(current)
     if current.isNote:
@@ -135,6 +141,10 @@ def get_interval(note1, note2):
     return str(Interval(note1, note2).cents)
 
 def stringify_keys(key_list):
+    """
+    Transform a list of stem keys into a list of string keys for persistence
+        :param key_list: List of stem keys
+    """
     return [ [str(item) for item in l] for l in key_list]
 
 def join_stem_by_note(note_stems):
