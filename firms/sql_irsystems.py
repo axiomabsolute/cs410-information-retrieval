@@ -257,6 +257,7 @@ class SqlIRSystem(IRSystem):
         conn = sqlite3.connect(self.dbpath)
         cursor = conn.cursor()
         for table in tables:
+            print("Querying table %s" % table)
             cursor.execute("SELECT count(*) FROM %s" % table)
             results[table] = cursor.fetchone()[0]
         return results
@@ -318,9 +319,11 @@ class SqlIndex(FirmIndex):
                             JOIN entries ON entries.snippet_id=snippets.id
                             JOIN stems ON stems.id=entries.stem_id
                             JOIN pieces ON pieces.id=snippets.piece_id
-                            WHERE stems.stem=?""", (stem, ))
+                            WHERE stems.stem=?
+                            AND stems.stemmer_id=?""", (stem, self.stemmer_id))
             result = cursor.fetchmany()
             while result:
                 results.append([ {'id': r[0], 'piece': r[5], 'part': r[2], 'offset': r[3], 'stem': r[4], 'path': r[5], 'piece_id': r[6]} for r in result ])
                 result = cursor.fetchmany()
+
         return list(chain.from_iterable(results))
