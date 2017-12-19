@@ -7,7 +7,7 @@ Internally, most stemming functions work on either individual notes or pairwise 
 
 from itertools import islice, chain
 from operator import itemgetter
-from models import flatten
+from firms.models import flatten
 from music21.interval import Interval
 from music21.chord import Chord
 from music21.note import Note

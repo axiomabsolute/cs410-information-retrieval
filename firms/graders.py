@@ -5,7 +5,7 @@ Implementations of FIRMS Grader abstract class
 from itertools import groupby
 from operator import attrgetter, itemgetter
 from math import log
-from models import Grader, GraderResult
+from firms.models import Grader, GraderResult
 
 def by(*getters):
     """
