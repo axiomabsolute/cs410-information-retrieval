@@ -108,7 +108,9 @@ FIRMS can automatically expand repeated sections during the indexing process. Th
 
 > `python.exe firms_cli.py add dir ./examples --explicit_repeats True`
 
-Note that this process can slow down ingest time significantly.
+Note that this process can slow down ingest time significantly. If a piece does not contain any repeated sections, or the repeated sections are malformed in some way, the following error message will be shown, and the ingestion process will continue with the original unexpanded version:
+
+> Unable to expand piece. Continuing with original
 
 ## Evaluation
 
