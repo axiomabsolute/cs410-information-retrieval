@@ -12,7 +12,7 @@ setup(
     packages=['firms'],
     python_requires=">=3",
     entry_points={
-        'console_scripts': ['firms=firms.command_line:main'],
+        'console_scripts': ['firms=firms.command_line:cli'],
     },
     install_requires=[
         'music21',

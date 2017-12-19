@@ -178,3 +178,30 @@ There are many musical aspects not captured by the current implementation, inclu
 * Unpitched notes, e.g. percussion
 * Tied notes
 * Non-traditional western music notation
+
+## Development
+
+Configure .pypirc file with:
+
+```
+[distutils]
+index-servers =
+  pypi
+  pypitest
+
+[pypi]
+username=user-name
+password=user-password
+
+[pypitest]
+username=user-name
+password=user-password
+```
+
+Then to create a new version:
+
+1. `git commit`
+2. Update setup.py `version` and `download_url`
+3. `git tag <version-number>` and `git push --tags`
+4. `python setup.py sdist upload -r pypitest`
+5. `pip install --upgrade firms --no-cache-dir`
