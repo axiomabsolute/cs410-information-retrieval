@@ -397,7 +397,7 @@ def evaluate(n, erate, minsize, maxsize, add_note_error, remove_note_error, repl
             print("Sample %s: %s (%s)" % (idx + 1, sample_piece_name, sample_piece_path))
             piece = converter.parse(sample_piece_path)
             part = random.choice(list(piece.recurse().parts))
-            num_of_measures = len(part.measures(0,None))
+            num_of_measures = part.measures(0,None)[-1].number
             sample_size = random.randint(minsize, maxsize)
             idx = random.randint(0, num_of_measures-sample_size)
             sample_stream = part.measures(idx, idx+sample_size).recurse().notesAndRests
