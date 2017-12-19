@@ -536,6 +536,17 @@ def print_pieces(pieces):
 
 @click.group()
 def cli():
+    """
+    FIRMS: Fuzzy Information Retrieval for Musical Scores
+    
+    firms generates and queries a local index of musical scores.  Commands are
+    arranged into a hierarchy of subcommands with related functionality.  Append
+    `--help` to any command or subcommand to see a description of the command, 
+    the options the command supports, and example usages.
+
+    See https://github.com/axiomabsolute/cs410-information-retrieval/blob/master/README.md
+    for more deatil
+    """
     pass
 
 # Build command groups

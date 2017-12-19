@@ -15,6 +15,7 @@ setup(
         'console_scripts': ['firms=firms.command_line:cli'],
     },
     install_requires=[
+        'matplotlib',
         'music21',
         'tabulate',
         'click',
