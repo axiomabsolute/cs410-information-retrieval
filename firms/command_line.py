@@ -15,9 +15,9 @@ from music21 import stream as m21stream
 from tabulate import tabulate
 import click
 
-from sql_irsystems import SqlIRSystem
-from graders import Bm25Grader, LogWeightedSumGrader
-from stemmers import index_key_by_pitch, index_key_by_simple_pitch, index_key_by_interval,\
+from firms.sql_irsystems import SqlIRSystem
+from firms.graders import Bm25Grader, LogWeightedSumGrader
+from firms.stemmers import index_key_by_pitch, index_key_by_simple_pitch, index_key_by_interval,\
     index_key_by_contour, index_key_by_rythm, index_key_by_normalized_rythm
 
 valid_chars = '-_.() abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
