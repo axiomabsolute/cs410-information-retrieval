@@ -104,15 +104,11 @@ FIRMs is designed to be accomodate some level of error in the user input.
 
 Failing to trace through repeated sections of music causes issues for songs with a heavily repetative structure. The performance of FIRMS is highly dependent on how these types of songs are notated. Explicitly writing out repeated sections in a flat format greatly improves the performance. This can be seen in the *Amazing Grace* query in the "Examples" section above. This example contains the main theme of the song, but the BM25 method fails to score it highly because the repeated sections are ignored from the original score. The "Amazing Grace with Drums Explicit Repeat" example is an alternate engraving of the "Amazing Grace with Drums" score with repeated sections written out linearly, as they would be heard by an audience. This example scores *higher* than the original version because the repeats are effectively captured.
 
-The process of tracing repeats can be automated by converting from MusicXML to MIDI and back. This process trades the structural information (e.g. repeated sections, variations) to more accurately represent what a listener would hear. This process significantly slows down the initial ingest process, and is disabled by default. The various `add` commands take a boolean flag to enable this conversion process:
+FIRMS can automatically expand repeated sections during the indexing process. The various `add` commands take a boolean flag to enable the conversion:
 
 > `python.exe firms_cli.py add dir ./examples --explicit_repeats True`
 
-Note you may see some warnings like the following:
-
-> midi.base.py: WARNING: Conversion error for <MidiEvent PROGRAM_CHANGE, t=0, track=1, channel=1>: Got incorrect data for <MidiEvent PROGRAM_CHANGE, t=0, track=1, channel=1> in .data: None,cannot parse Program Change; ignored.
-
-These may be safely ignored. Other errors may occur - converting between MusicXML and Midi is not fool-proof. In these cases the system will fall back to using the non-expanded form of the score.
+Note that this process can slow down ingest time significantly.
 
 ## Evaluation
 

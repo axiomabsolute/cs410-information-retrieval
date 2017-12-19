@@ -231,7 +231,7 @@ def add_directory(dirpath, path, explicit_repeats):
                 print("Adding piece %s" % (filename))
                 add_piece_to_index(os.path.join(root, filename), path, explicit_repeats)
             else:
-                print("Skipping piece %s: only mxl and xml files supported" % filename)
+                print("\tSkipping piece %s: only mxl and xml files supported" % filename)
     print("Ellapsed time: %s sec" % (time.time() - start))
 
 @click.command('music21')

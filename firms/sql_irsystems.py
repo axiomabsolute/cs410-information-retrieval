@@ -5,6 +5,8 @@ A Sqlite3 based implementation of FIRMS
 from itertools import chain
 import sqlite3
 
+from music21.repeat import ExpanderException
+
 from firms.models import IRSystem, FirmIndex, get_part_details, get_snippets_for_part
 
 class SqlIRSystem(IRSystem):
@@ -29,13 +31,18 @@ class SqlIRSystem(IRSystem):
             cursor.execute("PRAGMA synchronous = OFF")
             cursor.execute("PRAGMA journal_mode = OFF")
             piece_id = None
+            if explicit_repeats:
+                try:
+                    piece = piece.expandRepeats()
+                except ExpanderException:
+                    print("\tUnable to expand piece. Continuing with original")
             for part in get_part_details(piece):
                 piece_name = part.piece
                 part_name = part.name
                 if not piece_id:
                     piece_id = self.ensure_piece(piece_path, piece_name, conn, cursor)
                 part_id = self.ensure_part(piece_id, part_name, conn, cursor)
-                snippets = list(get_snippets_for_part(part, explicit_repeats))
+                snippets = list(get_snippets_for_part(part))
                 snippet_ids = self.ensure_snippets(snippets, piece_id, part_id, conn, cursor)
                 for idx in self.indexes.values():
                     idx.add_snippets(snippets, snippet_ids, conn, cursor)

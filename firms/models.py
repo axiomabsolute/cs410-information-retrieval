@@ -56,23 +56,12 @@ def get_snippets_for_piece(piece_name, part_name, notes, snippet_length):
     """
     return (Snippet(piece_name, part_name, notes[i: i+snippet_length], i) for i in range(0, 1 + len(notes) - snippet_length))
 
-def get_snippets_for_part(part, explicit_repeats=False):
+def get_snippets_for_part(part):
     """
     Generate all snippets for a part
     Can expand repeated sections by converting the part to MIDI and back. May be slow.
         :param part: The music21 part to generate snippets from
-        :param explicit_repeats=False: Flag controlling whether repeated sections are expanded
     """
-    if explicit_repeats:
-        try:
-            tmpfilename = 'tmpremoveme.mid'
-            part.part.write("midi", tmpfilename)
-            newstream = music21.converter.parse(tmpfilename)
-            os.remove(tmpfilename)
-            print("\t\tSuccessfully converted explicit repeats")
-            return get_snippets_for_piece(part.piece, part.name, get_notes_and_rests(newstream), 5)
-        except Exception:
-            print("\t\tUnable to convert to midi and back. Falling back to default form.")
     return get_snippets_for_piece(part.piece, part.name, get_notes_and_rests(part.part), 5)
 
 class IRSystem(metaclass=ABCMeta):
