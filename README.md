@@ -1,10 +1,15 @@
-# Fuzzy Information Retrieval for Musical Scores (FIRMS)
+# Fuzzy Information Retrieval for Musical Scores (Firms)
 
-FIRMS is an IR system designed for performing fuzzy searches against a corpus of musical scores. Users provide snippets of a musical work using a common digital music representation (e.g. MusicXML) and FIRMS compares it against a corpus of pre-indexed musical scores to efficiently rank and return results. The retrieval process is "fuzzy" because FIRMS is designed to be resilient against several common sources of transcription error, from simple typos, to aural rythmic ambiguity and key transposition.
+Firms is an IR system designed for performing fuzzy searches against a corpus of musical scores. Users provide snippets of a musical work using a common digital music representation (e.g. MusicXML) and Firms compares it against a corpus of pre-indexed musical scores to efficiently rank and return results. The retrieval process is "fuzzy" because Firms is designed to be resilient against several common sources of transcription error, from simple typos, to aural rythmic ambiguity and key transposition.
 
 ## Setup
 
-FIRMS can be set up manually by installing the following dependencies along with *Python 3.6+*:
+Firms is hosted on the Python Package Index (Pypi) and can be installed along with all required dependencies with the `pip` command:
+
+> `pip install firms`
+
+## Setup - Manual
+Firms can be set up manually by installing the following dependencies along with *Python 3.6+*:
 
 * music21
 * tabulate
@@ -30,11 +35,11 @@ Using the Anaconda python distribution:
 
 ## Usage
 
-FIRMS can be used as either a library (by importing modules from the `firms` namespace) or through a command line interface (CLI). The CLI is defined in `firms_cli.py` and can be run interactively to explore available commands and options:
+Firms can be used as either a library (by importing modules from the `firms` namespace) or through a command line interface (CLI). The CLI is defined in `firms_cli.py` and can be run interactively to explore available commands and options:
 
 > `path/to/python.exe firms_cli.py`
 
-This will display a list of available commands. To see more detail about a particular command or group of commands, append `--help` to the command. For example, to see more detail about initializing a FIRMS index, run
+This will display a list of available commands. To see more detail about a particular command or group of commands, append `--help` to the command. For example, to see more detail about initializing a Firms index, run
 
 > `python.exe firms_cli.py create --help`
 
@@ -48,7 +53,7 @@ Many commands have subcommands supporting related operations. For instance, to a
 
 At a broad level, the CLI offers the following features:
 
-1. Create a FIRMS index
+1. Create a Firms index
 2. Add pieces to the index by specifying a composer, a path to a valid MusicXML file, or by adding all pieces in the music21 corpus
 3. Show general information about the stored data
 4. Query for a piece by providing an example via MusicXML or in tinynotation
@@ -102,9 +107,9 @@ FIRMs is designed to be accomodate some level of error in the user input.
 
 ### Repeated sections
 
-Failing to trace through repeated sections of music causes issues for songs with a heavily repetative structure. The performance of FIRMS is highly dependent on how these types of songs are notated. Explicitly writing out repeated sections in a flat format greatly improves the performance. This can be seen in the *Amazing Grace* query in the "Examples" section above. This example contains the main theme of the song, but the BM25 method fails to score it highly because the repeated sections are ignored from the original score. The "Amazing Grace with Drums Explicit Repeat" example is an alternate engraving of the "Amazing Grace with Drums" score with repeated sections written out linearly, as they would be heard by an audience. This example scores *higher* than the original version because the repeats are effectively captured.
+Failing to trace through repeated sections of music causes issues for songs with a heavily repetative structure. The performance of Firms is highly dependent on how these types of songs are notated. Explicitly writing out repeated sections in a flat format greatly improves the performance. This can be seen in the *Amazing Grace* query in the "Examples" section above. This example contains the main theme of the song, but the BM25 method fails to score it highly because the repeated sections are ignored from the original score. The "Amazing Grace with Drums Explicit Repeat" example is an alternate engraving of the "Amazing Grace with Drums" score with repeated sections written out linearly, as they would be heard by an audience. This example scores *higher* than the original version because the repeats are effectively captured.
 
-FIRMS can automatically expand repeated sections during the indexing process. The various `add` commands take a boolean flag to enable the conversion:
+Firms can automatically expand repeated sections during the indexing process. The various `add` commands take a boolean flag to enable the conversion:
 
 > `python.exe firms_cli.py add dir ./examples --explicit_repeats True`
 
@@ -161,7 +166,7 @@ This allows the system to be a little more flexible defining what it considers t
 
 ## Architecture
 
-At a fundamental level, FIRMS operates primarily on the concept of *stemming*. Each piece is broken into a number of small sections called *snippets*. These snippets are passed through several stemmers, each of which produces one or more *stems* capturing a particular dimension of the snippet. For example, a stem may capture the pitches, rhythms, or contour of notes within snippet. These stems are persisted in an index for efficient lookup.
+At a fundamental level, Firms operates primarily on the concept of *stemming*. Each piece is broken into a number of small sections called *snippets*. These snippets are passed through several stemmers, each of which produces one or more *stems* capturing a particular dimension of the snippet. For example, a stem may capture the pitches, rhythms, or contour of notes within snippet. These stems are persisted in an index for efficient lookup.
 
 When a user enters a query, the query is passed through the same process, first breaking it up into snippets, then passing each snippet through the same stemmers. The resulting stems are looked up in the pre-constructed index, returning a list of locations within each piece that match the given snippet. From there, the results may be aggregated using one of several scoring mechanisms.
 
