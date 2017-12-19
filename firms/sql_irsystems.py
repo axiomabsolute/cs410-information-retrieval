@@ -259,7 +259,7 @@ class SqlIRSystem(IRSystem):
         Return general information about the data in FIRMS instance
             :param self:
         """
-        tables = ["entries", "pieces", "parts", "snippets", "stems", "stemmers"]
+        tables = ["stemmers", "pieces", "parts", "snippets", "stems", "entires"]
         results = {}
         conn = sqlite3.connect(self.dbpath)
         cursor = conn.cursor()

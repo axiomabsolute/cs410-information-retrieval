@@ -151,6 +151,9 @@ def join_stem_by_note(note_stems):
     return [ ' '.join(stem) for stem in note_stems ]
 
 def stem_by_pitch(snippet):
+    """
+    Represent a snippet as a sequence of absolute pitch values and rests.
+    """
     voices = get_voice_lines(snippet.notes)
     return [
         [note.pitch.nameWithOctave if note.isNote else
@@ -163,6 +166,9 @@ def index_key_by_pitch(snippet):
     return join_stem_by_note(stem_by_pitch(snippet))
 
 def stem_by_simple_pitch(snippet):
+    """
+    Represent a snippet as a sequence of note names and rests, ignoring octave.
+    """
     voices = get_voice_lines(snippet.notes)
     return [
         [note.pitch.name if note.isNote else
@@ -175,6 +181,9 @@ def index_key_by_simple_pitch(snippet):
     return join_stem_by_note(stem_by_simple_pitch(snippet))
 
 def stem_by_interval(snippet):
+    """
+    Represent a snippet as a sequence of interval distances between subsequent notes.
+    """
     voices = get_voice_lines(snippet.notes)
     return [
         [
@@ -186,6 +195,18 @@ def index_key_by_interval(snippet):
     return join_stem_by_note(stem_by_interval(snippet))
 
 def stem_by_contour(snippet):
+    """
+    Represent a snippet as a sequence of contours between subsequent notes.
+
+    Given two notes, a & b, such that a appears before b in the original snippet,
+    this method returns:
+        'd' if note b is lower than a
+        'u' if note b is higher than a
+        's' if note b is the same pitch as a
+    Moving between two rests always results in 's'.
+    Moving from any pitch to a rest is always 'd'.
+    Moving from a rest to any pitch is always 'u'.
+    """
     voices = get_voice_lines(snippet.notes)
     return [
         [
@@ -197,6 +218,10 @@ def index_key_by_contour(snippet):
     return join_stem_by_note(stem_by_contour(snippet))
 
 def stem_by_rythm(snippet):
+    """
+    Represent a snippet as a sequence of rhythmic lengths in terms of a multiple of
+    a quarter-note value.
+    """
     return [
         [ note.duration.quarterLength for note in snippet.notes ]
     ]
@@ -205,6 +230,10 @@ def index_key_by_rythm(snippet):
     return join_stem_by_note(stringify_keys(stem_by_rythm(snippet)))
 
 def stem_by_normalized_rythm(snippet):
+    """
+    Represent a snippet as a sequence of rhythmic lengths in terms of a multiple of
+    a quarter-note value, normalized by the longest such length within the sequence.
+    """
     rythm_stems = stem_by_rythm(snippet)
     longest = max(flatten(rythm_stems))
     if longest == 0:
