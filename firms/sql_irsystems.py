@@ -7,7 +7,7 @@ import sqlite3
 
 from music21.repeat import ExpanderException
 
-from firms.models import IRSystem, FirmIndex, get_part_details, get_snippets_for_part
+from models import IRSystem, FirmIndex, get_part_details, get_snippets_for_part
 
 class SqlIRSystem(IRSystem):
     """

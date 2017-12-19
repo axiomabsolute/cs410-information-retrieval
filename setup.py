@@ -11,7 +11,10 @@ setup(
     license='MIT',
     packages=['firms'],
     python_requires=">=3",
-    install_requirements=[
+    entry_points={
+        'console_scripts': ['firms=firms.command_line:main'],
+    },
+    install_requires=[
         'music21',
         'tabulate',
         'click',
