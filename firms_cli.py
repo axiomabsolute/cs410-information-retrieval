@@ -402,6 +402,7 @@ def evaluate(n, erate, minsize, maxsize, add_note_error, remove_note_error, repl
             idx = random.randint(0, num_of_measures-sample_size)
             sample_stream = part.measures(idx, idx+sample_size).recurse().notesAndRests
             sample_detail = (sample_piece_name, part, idx, sample_piece_path, sample_piece_id)
+            print("Part %s, Start measure %s, Length %s" % (part.partName, idx, sample_size))
             sample_stream = introduce_error(sample_stream, erate, build_error_types(add_note_error, remove_note_error, replace_note_error, transposition_error))
             if output:
                 print("\tSaving query sample")
