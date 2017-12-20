@@ -8,11 +8,11 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 
 setup(
     name='firms',
-    version='0.0.10',
+    version='0.0.11',
     description='Fuzzy Information Retrieval for Musical Scores',
     long_description=long_description,
     url='https://github.com/axiomabsolute/cs410-information-retrieval',
-    download_url='https://github.com/axiomabsolute/cs410-information-retrieval/archive/0.0.10.tar.gz',
+    download_url='https://github.com/axiomabsolute/cs410-information-retrieval/archive/0.0.11.tar.gz',
     author='Devon Terrell',
     author_email='devon@axioms.me',
     license='MIT',
