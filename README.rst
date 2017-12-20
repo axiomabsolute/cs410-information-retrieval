@@ -99,7 +99,7 @@ run:
 In addition, an XML sample of "Ode to Joy" is provided in the
 ``examples`` directory, and can be used like so:
 
-    ``firms query xml examples/ode-to-joy.query.xml``
+    ``firms query piece examples/ode-to-joy.query.xml``
 
 Examples with Errors
 ~~~~~~~~~~~~~~~~~~~~
@@ -111,7 +111,7 @@ different type of musical error included.
 Piece                           Query                                                                                  Error Type
 ==============================  ===============================================================================        ===========
 Amazing Grace                   tinynotation: g8 c'2 e'8 c' e'2 d'4 c'2 a4 g2 g4 g4 c'2 e'8 c' e'2 d'4 g'2. g'2        Extra Note 
-Entertainer                     tinynotation: d''16 e'' c'' a' a' b' g' d' e' c' a a b g8 d16 e c A A B A A- G8"       Wrong Note 
+Entertainer                     tinynotation: d''16 e'' c'' a' a' b' g' d' e' c' a a b g8 d16 e c A A B A A- G8        Wrong Note 
 March of the Wooden Soldiers    tinynotation: d'8 r d' b8. a#16 b8 r16 c'#16 d'8 r d' r b8. a#16 b8 r16 c'#16          Missing Note 
 Ode to Joy                      tinynotation: d' d' e'- f' f' e'- d' c' b- b- c' d' d'4. c'8 c'2                       Transposed 
 Deck the Halls                  tinynotation: d'2. c'4 b2 a g a b g a4 b c' a b2. a4 g2 f# g1                          Stretched Rhythm 
@@ -167,7 +167,7 @@ Then run an evaluation, specifying the number of samples to take. Note,
 this may take some time to complete (~15 minutes for my laptop). Try
 ``--n 10`` for a faster result (~1.5 min).
 
-    ``firms exaluate --n 100 --noprint True``
+    ``firms evaluate --n 100 --noprint True``
 
 This will take 100 samples of various lengths from the pieces available
 in the FIRMs index, perform a search based on the sample, and collect
