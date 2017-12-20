@@ -3,9 +3,9 @@ Fuzzy Information Retrieval for Musical Scores (Firms)
 
 Firms is an IR system designed for performing fuzzy searches against a
 corpus of musical scores. Users provide snippets of a musical work using
-a common digital music representation (e.g. MusicXML) and Firms compares
+a common digital music representation (e.g. MusicXML) and Firms compares
 it against a corpus of pre-indexed musical scores to efficiently rank
-and return results. The retrieval process is “fuzzy” because Firms is
+and return results. The retrieval process is "fuzzy" because Firms is
 designed to be resilient against several common sources of transcription
 error, from simple typos, to aural rythmic ambiguity and key
 transposition.
@@ -47,15 +47,15 @@ instance, to add all MusicXML pieces from a directory, use the
 
 At a broad level, the CLI offers the following features:
 
-1. Create a Firms index
-2. Add pieces to the index by specifying a composer, a path to a valid
+#. Create a Firms index
+#. Add pieces to the index by specifying a composer, a path to a valid
    MusicXML file, or by adding all pieces in the music21 corpus
-3. Show general information about the stored data
-4. Query for a piece by providing an example via MusicXML or in
+#. Show general information about the stored data
+#. Query for a piece by providing an example via MusicXML or in
    tinynotation
-5. Show a piece as MusicXML
-6. Output the midi version of a piece
-7. Evaluate the system by randomly selecting sections from the music21
+#. Show a piece as MusicXML
+#. Output the midi version of a piece
+#. Evaluate the system by randomly selecting sections from the music21
    corpus and probabilistically introducing various types of errors
 
 Examples
@@ -81,104 +81,22 @@ using standard western notation.
     More information on tinynotation can be found `in the music21
     documentation <http://web.mit.edu/music21/doc/moduleReference/moduleTinyNotation.html>`__.
 
-+-------+-------+
-| Piece | Query |
-+=======+=======+
-| Amazi | tinyn |
-| ng    | otati |
-| Grace | on:   |
-|       | g8    |
-|       | c’2   |
-|       | e’8   |
-|       | c’    |
-|       | e’2   |
-|       | d’4   |
-|       | c’2   |
-|       | a4 g2 |
-|       | g4    |
-|       | c’2   |
-|       | e’8   |
-|       | c’    |
-|       | e’2   |
-|       | d’4   |
-|       | g’2.~ |
-|       | g’2   |
-|       | e’4   |
-|       | g’4.~ |
-|       | e’8   |
-|       | g’ e’ |
-|       | c’2   |
-|       | g4    |
-|       | a4.   |
-|       | c’8   |
-|       | c’ a  |
-+-------+-------+
-| Enter | tinyn |
-| taine | otati |
-| r     | on:   |
-|       | d’‘16 |
-|       | e’‘c’ |
-|       | ‘a’   |
-|       | a’ b’ |
-|       | g’8   |
-|       | d’16  |
-|       | e’ c’ |
-|       | a a b |
-|       | g8    |
-|       | d16 e |
-|       | c A A |
-|       | B A   |
-|       | A- G8 |
-+-------+-------+
-| March | tinyn |
-| of    | otati |
-| the   | on:   |
-| Woode | d’8 r |
-| n     | d’ r  |
-| Soldi | b8.   |
-| ers   | a#16  |
-|       | b8    |
-|       | r16   |
-|       | c’#16 |
-|       | d’8 r |
-|       | d’ r  |
-|       | b8.   |
-|       | a#16  |
-|       | b8    |
-|       | r16   |
-|       | c’#16 |
-+-------+-------+
-| Ode   | tinyn |
-| to    | otati |
-| Joy   | on:   |
-|       | b b   |
-|       | c’ d’ |
-|       | d’ c’ |
-|       | b a g |
-|       | g a b |
-|       | b4.   |
-|       | a8 a2 |
-+-------+-------+
-| Deck  | tinyn |
-| the   | otati |
-| Halls | on:   |
-|       | d’4.  |
-|       | c’8   |
-|       | b4 a  |
-|       | g a b |
-|       | g a8  |
-|       | b c’  |
-|       | a b4. |
-|       | a8 g4 |
-|       | f# g2 |
-+-------+-------+
+==============================    =====================================================================================================================
+Piece                             Query 
+==============================    =====================================================================================================================
+Amazing Grace                     tinynotation: g8 c'2 e'8 c' e'2 d'4 c'2 a4 g2 g4 c'2 e'8 c' e'2 d'4 g'2.~ g'2 e'4 g'4.~ e'8 g' e' c'2 g4 a4. c'8 c' a 
+Entertainer                       tinynotation: d''16 e'' c'' a' a' b' g'8 d'16 e' c' a a b g8 d16 e c A A B A A- G8 
+March of the Wooden Soldiers      tinynotation: d'8 r d' r b8. a#16 b8 r16 c'#16 d'8 r d' r b8. a#16 b8 r16 c'#16 
+Ode to Joy                        tinynotation: b b c' d' d' c' b a g g a b b4. a8 a2
+Deck the Halls                    tinynotation: d'4. c'8 b4 a g a b g a8 b c' a b4. a8 g4 f# g2
+==============================    =====================================================================================================================
 
 For example, to run the query for *Entertainer* from the table above,
 run:
 
     ``firms query tiny "tinynotation: d''16 e'' c'' a' a' b' g'8 d'16 e' c' a a b g8 d16 e c A A B A A- G8"``
 
-In addition, an XML sample of “Ode to Joy” is provided in the
+In addition, an XML sample of "Ode to Joy" is provided in the
 ``examples`` directory, and can be used like so:
 
     ``firms query xml examples/ode-to-joy.query.xml``
@@ -189,91 +107,15 @@ Examples with Errors
 The table below contains versions of the sample queries above with a
 different type of musical error included.
 
-+-------+-------+-------------+
-| Piece | Query | Error Type  |
-+=======+=======+=============+
-| Amazi | tinyn | Extra Note  |
-| ng    | otati |             |
-| Grace | on:   |             |
-|       | g8    |             |
-|       | c’2   |             |
-|       | e’8   |             |
-|       | c’    |             |
-|       | e’2   |             |
-|       | d’4   |             |
-|       | c’2   |             |
-|       | a4 g2 |             |
-|       | g4 g4 |             |
-|       | c’2   |             |
-|       | e’8   |             |
-|       | c’    |             |
-|       | e’2   |             |
-|       | d’4   |             |
-|       | g’2.  |             |
-|       | g’2   |             |
-+-------+-------+-------------+
-| Enter | tinyn | Wrong Note  |
-| taine | otati |             |
-| r     | on:   |             |
-|       | d’‘16 |             |
-|       | e’‘c’ |             |
-|       | ‘a’   |             |
-|       | a’ b’ |             |
-|       | g’ d’ |             |
-|       | e’ c’ |             |
-|       | a a b |             |
-|       | g8    |             |
-|       | d16 e |             |
-|       | c A A |             |
-|       | B A   |             |
-|       | A-    |             |
-|       | G8“   |             |
-+-------+-------+-------------+
-| March | tinyn | Missing     |
-| of    | otati | Note        |
-| the   | on:   |             |
-| Woode | d’8 r |             |
-| n     | d’    |             |
-| Soldi | b8.   |             |
-| ers   | a#16  |             |
-|       | b8    |             |
-|       | r16   |             |
-|       | c’#16 |             |
-|       | d’8 r |             |
-|       | d’ r  |             |
-|       | b8.   |             |
-|       | a#16  |             |
-|       | b8    |             |
-|       | r16   |             |
-|       | c’#16 |             |
-+-------+-------+-------------+
-| Ode   | tinyn | Transposed  |
-| to    | otati |             |
-| Joy   | on:   |             |
-|       | d’ d’ |             |
-|       | e’-   |             |
-|       | f’ f’ |             |
-|       | e’-   |             |
-|       | d’ c’ |             |
-|       | b- b- |             |
-|       | c’ d’ |             |
-|       | d’4.  |             |
-|       | c’8   |             |
-|       | c’2   |             |
-+-------+-------+-------------+
-| Deck  | tinyn | Stretched   |
-| the   | otati | Rhythm      |
-| Halls | on:   |             |
-|       | d’2.  |             |
-|       | c’4   |             |
-|       | b2 a  |             |
-|       | g a b |             |
-|       | g a4  |             |
-|       | b c’  |             |
-|       | a b2. |             |
-|       | a4 g2 |             |
-|       | f# g1 |             |
-+-------+-------+-------------+
+==============================  ===============================================================================        ===========
+Piece                           Query                                                                                  Error Type
+==============================  ===============================================================================        ===========
+Amazing Grace                   tinynotation: g8 c'2 e'8 c' e'2 d'4 c'2 a4 g2 g4 g4 c'2 e'8 c' e'2 d'4 g'2. g'2        Extra Note 
+Entertainer                     tinynotation: d''16 e'' c'' a' a' b' g' d' e' c' a a b g8 d16 e c A A B A A- G8"       Wrong Note 
+March of the Wooden Soldiers    tinynotation: d'8 r d' b8. a#16 b8 r16 c'#16 d'8 r d' r b8. a#16 b8 r16 c'#16          Missing Note 
+Ode to Joy                      tinynotation: d' d' e'- f' f' e'- d' c' b- b- c' d' d'4. c'8 c'2                       Transposed 
+Deck the Halls                  tinynotation: d'2. c'4 b2 a g a b g a4 b c' a b2. a4 g2 f# g1                          Stretched Rhythm 
+==============================  ===============================================================================        ===========
 
 FIRMs is designed to be accomodate some level of error in the user
 input.
@@ -286,11 +128,11 @@ songs with a heavily repetative structure. The performance of Firms is
 highly dependent on how these types of songs are notated. Explicitly
 writing out repeated sections in a flat format greatly improves the
 performance. This can be seen in the *Amazing Grace* query in the
-“Examples” section above. This example contains the main theme of the
+"Examples" section above. This example contains the main theme of the
 song, but the BM25 method fails to score it highly because the repeated
-sections are ignored from the original score. The “Amazing Grace with
-Drums Explicit Repeat” example is an alternate engraving of the “Amazing
-Grace with Drums” score with repeated sections written out linearly, as
+sections are ignored from the original score. The "Amazing Grace with
+Drums Explicit Repeat" example is an alternate engraving of the "Amazing
+Grace with Drums" score with repeated sections written out linearly, as
 they would be heard by an audience. This example scores *higher* than
 the original version because the repeats are effectively captured.
 
@@ -334,11 +176,22 @@ statistics on the average rank of the correct result. The
 tables, while still printing the aggregate true-positive ranking
 statistic. For exmaple, the results on my run were as follows:
 
-‘’’ Statistics for BM25 nobs: 100 minmax: (0, 7) mean: 0.19 variance:
-0.882727272727 skewness: 6.297878668097064 kurtosis: 40.1179051948864
-Statistics for LogWeightedSumGrader nobs: 100 minmax: (0, 26) mean: 0.42
-variance: 6.85212121212 skewness: 9.47574350344239 kurtosis:
-90.04614836416702 ‘’’
+::
+
+    Statistics for BM25
+        nobs: 100
+        minmax: (0, 7)
+        mean: 0.19
+        variance: 0.882727272727
+        skewness: 6.297878668097064
+        kurtosis: 40.1179051948864
+    Statistics for LogWeightedSumGrader
+        nobs: 100
+        minmax: (0, 26)
+        mean: 0.42
+        variance: 6.85212121212
+        skewness: 9.47574350344239
+        kurtosis: 90.04614836416702
 
 This shows statistics on the ranks of true-positive results, broken down
 by the grading methods used. The field ``nobs`` represents the total
@@ -368,7 +221,7 @@ values between [0, 1) and should add up to 1, thus representing a
 probability distribution. By default, they are each set to ``.25`` to
 present an equal probability.
 
-Often we’re more concerned with whether the true-positive result is
+Often we're more concerned with whether the true-positive result is
 within the top K results returned, such as the first page of a search
 engine. To quantify this, we can configure the evaluation scorer to
 treat all results below K as a 0, while maintaining the rank of results
@@ -437,7 +290,7 @@ them on for final aggregation.
 There are many musical aspects not captured by the current
 implementation, including:
 
--  Unpitched notes, e.g. percussion
+-  Unpitched notes, e.g. percussion
 -  Tied notes
 -  Non-traditional western music notation
 
@@ -463,8 +316,8 @@ Configure .pypirc file with:
 
 Then to create a new version:
 
-1. ``git commit``
-2. Update setup.py ``version`` and ``download_url``
-3. ``git tag <version-number>`` and ``git push --tags``
-4. ``python setup.py sdist upload -r pypitest``
-5. ``pip install --upgrade firms --no-cache-dir``
+#. ``git commit``
+#. Update setup.py ``version`` and ``download_url``
+#. ``git tag <version-number>`` and ``git push --tags``
+#. ``python setup.py sdist upload -r pypitest``
+#. ``pip install --upgrade firms --no-cache-dir``
